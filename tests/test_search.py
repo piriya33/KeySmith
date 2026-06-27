@@ -131,3 +131,11 @@ def test_nostr_snapshot_uses_npub_format_breakdown():
     assert snapshot["format_breakdown"]["fixed_prefix"] == "npub1"
     assert snapshot["format_breakdown"]["searchable_pattern"] == "ace"
     assert "Nostr public key" in snapshot["process_steps"][2]
+
+
+def test_default_search_uses_process_workers_and_injected_search_uses_threads():
+    default_session = SearchSession()
+    injected_session = SearchSession(generator=lambda config: result("1miss"))
+
+    assert default_session.snapshot()["worker_mode"] == "process"
+    assert injected_session.snapshot()["worker_mode"] == "thread"

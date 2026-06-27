@@ -1,6 +1,9 @@
 from keysmith.addressing import (
+    CandidateResult,
     create_address_result,
+    create_candidate_result,
     create_nostr_result,
+    finalize_candidate_result,
     nostr_npub_from_hex,
     private_key_hex_from_int,
 )
@@ -59,3 +62,16 @@ def test_nostr_result_exports_npub_nsec_and_x_only_public_key():
     assert result.address_type == "npub"
     assert len(result.x_only_public_key_hex) == 64
     assert result.private_key_export_label == "nsec private key"
+
+
+def test_candidate_generation_defers_private_key_exports_until_finalize():
+    candidate = create_candidate_result(private_key_hex_from_int(1), "mainnet", "p2wpkh", "bitcoin")
+
+    assert isinstance(candidate, CandidateResult)
+    assert candidate.address == "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+    assert not hasattr(candidate, "wif")
+
+    final = finalize_candidate_result(candidate, "mainnet", "p2wpkh", "bitcoin")
+
+    assert final.address == candidate.address
+    assert final.wif.startswith(("K", "L"))

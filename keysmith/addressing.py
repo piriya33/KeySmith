@@ -17,6 +17,12 @@ BECH32_ALPHABET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
 
 
 @dataclass(frozen=True)
+class CandidateResult:
+    address: str
+    private_key_hex: str
+
+
+@dataclass(frozen=True)
 class AddressResult:
     address: str
     network: str
@@ -73,6 +79,41 @@ def create_address_result(private_key_hex: str, network: str, address_type: str)
     )
 
 
+def create_candidate_result(private_key_hex: str, network: str, address_type: str, target: str) -> CandidateResult:
+    if target == "nostr":
+        return create_nostr_candidate_result(private_key_hex)
+    private_key = bytes.fromhex(private_key_hex)
+    if len(private_key) != 32:
+        raise ValueError("Private key must be 32 bytes")
+
+    public_key = PublicKey.from_valid_secret(private_key)
+    public_key_bytes = public_key.format(compressed=True)
+    if address_type == "p2pkh":
+        address = p2pkh_address(public_key_bytes, network)
+    elif address_type == "p2wpkh":
+        address = p2wpkh_address(public_key_bytes, network)
+    elif address_type == "p2tr":
+        address = p2tr_address(taproot_output_key(private_key), network)
+    else:
+        raise ValueError(f"Unsupported address type: {address_type}")
+    return CandidateResult(address=address, private_key_hex=private_key_hex)
+
+
+def finalize_candidate_result(
+    candidate: CandidateResult,
+    network: str,
+    address_type: str,
+    target: str,
+) -> AddressResult:
+    if target == "nostr":
+        result = create_nostr_result(candidate.private_key_hex)
+    else:
+        result = create_address_result(candidate.private_key_hex, network, address_type)
+    if result.address != candidate.address:
+        raise ValueError("Finalized result does not match candidate address")
+    return result
+
+
 def create_nostr_result(private_key_hex: str) -> AddressResult:
     private_key = bytes.fromhex(private_key_hex)
     if len(private_key) != 32:
@@ -93,6 +134,19 @@ def create_nostr_result(private_key_hex: str) -> AddressResult:
         x_only_public_key_hex=x_only_public_key.hex(),
         nsec=nsec,
         private_key_export_label="nsec private key",
+    )
+
+
+def create_nostr_candidate_result(private_key_hex: str) -> CandidateResult:
+    private_key = bytes.fromhex(private_key_hex)
+    if len(private_key) != 32:
+        raise ValueError("Private key must be 32 bytes")
+
+    public_key = PublicKey.from_valid_secret(private_key)
+    x_only_public_key = public_key.format(compressed=False)[1:33]
+    return CandidateResult(
+        address=nostr_npub_from_hex(x_only_public_key.hex()),
+        private_key_hex=private_key_hex,
     )
 
 
