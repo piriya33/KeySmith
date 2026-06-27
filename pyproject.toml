@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keysmith"
+version = "0.1.0"
+description = "Local educational Bitcoin vanity address generator"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+  "Flask>=3.0,<4",
+  "coincurve>=20,<22",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8,<9",
+]
+
+[tool.setuptools.packages.find]
+include = ["keysmith*"]
+
+[tool.setuptools.package-data]
+keysmith = ["static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
