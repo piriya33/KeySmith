@@ -33,11 +33,15 @@ class SearchSession:
         self._ended_at: float | None = None
         self._result: AddressResult | None = None
         self._error: str | None = None
+        self._run_id = 0
 
     def start(self, config: SearchConfig) -> Dict[str, object]:
         self.stop(wait=True)
         with self._lock:
-            self._stop_event = threading.Event()
+            self._run_id += 1
+            run_id = self._run_id
+            stop_event = threading.Event()
+            self._stop_event = stop_event
             self._threads = []
             self._status = "running"
             self._config = config
@@ -48,7 +52,12 @@ class SearchSession:
             self._error = None
 
         for index in range(safe_worker_count(config.workers)):
-            thread = threading.Thread(target=self._worker, name=f"keysmith-worker-{index + 1}", daemon=True)
+            thread = threading.Thread(
+                target=self._worker,
+                args=(run_id, config, stop_event),
+                name=f"keysmith-worker-{index + 1}",
+                daemon=True,
+            )
             self._threads.append(thread)
             thread.start()
         return self.snapshot()
@@ -93,41 +102,46 @@ class SearchSession:
                 "format_breakdown": format_breakdown(config) if config else {},
             }
 
-    def _worker(self) -> None:
-        while not self._stop_event.is_set():
-            with self._lock:
-                config = self._config
-            if config is None:
+    def _worker(self, run_id: int, config: SearchConfig, stop_event: threading.Event) -> None:
+        while not stop_event.is_set():
+            if stop_event.is_set():
                 return
             try:
                 result = self._generator(config)
             except StopIteration:
-                self._stop_event.set()
-                self._finish("stopped")
+                stop_event.set()
+                self._finish(run_id, "stopped")
                 return
             except Exception as exc:  # pragma: no cover - defensive runtime path
                 with self._lock:
-                    self._error = str(exc)
-                self._stop_event.set()
-                self._finish("error")
+                    if self._run_id == run_id:
+                        self._error = str(exc)
+                stop_event.set()
+                self._finish(run_id, "error")
                 return
 
+            if stop_event.is_set():
+                return
             found = matches_address(result.address, config)
             with self._lock:
+                if self._run_id != run_id or self._stop_event is not stop_event or self._status != "running":
+                    return
                 self._attempts += 1
-                if found and self._status == "running":
+                if found:
                     self._result = result
                     self._status = "found"
                     self._ended_at = time.monotonic()
-                    self._stop_event.set()
+                    stop_event.set()
                     return
 
     @staticmethod
     def _generate_once(config: SearchConfig) -> AddressResult:
         return create_address_result(generate_private_key_hex(), config.network, config.address_type)
 
-    def _finish(self, status: str) -> None:
+    def _finish(self, run_id: int, status: str) -> None:
         with self._lock:
+            if self._run_id != run_id:
+                return
             if self._status not in {"found", "error"}:
                 self._status = status
                 self._ended_at = time.monotonic()
@@ -138,7 +152,7 @@ class SearchSession:
                 return
             threads = list(self._threads)
         if all(not thread.is_alive() for thread in threads):
-            self._finish("stopped")
+            self._finish(self._run_id, "stopped")
 
 
 def safe_worker_count(requested: int) -> int:

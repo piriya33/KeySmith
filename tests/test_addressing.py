@@ -21,8 +21,8 @@ def test_p2wpkh_addresses_use_bech32_prefixes():
     mainnet = create_address_result(private_key_hex_from_int(1), "mainnet", "p2wpkh")
     testnet = create_address_result(private_key_hex_from_int(1), "testnet", "p2wpkh")
 
-    assert mainnet.address.startswith("bc1q")
-    assert testnet.address.startswith("tb1q")
+    assert mainnet.address == "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"
+    assert testnet.address == "tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx"
     assert mainnet.public_key_hex.startswith("02")
 
 
@@ -30,7 +30,7 @@ def test_p2tr_addresses_use_bech32m_prefixes_and_x_only_key():
     mainnet = create_address_result(private_key_hex_from_int(1), "mainnet", "p2tr")
     testnet = create_address_result(private_key_hex_from_int(1), "testnet", "p2tr")
 
-    assert mainnet.address.startswith("bc1p")
-    assert testnet.address.startswith("tb1p")
+    assert mainnet.address == "bc1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5sspknck9"
+    assert testnet.address == "tb1pmfr3p9j00pfxjh0zmgp99y8zftmd3s5pmedqhyptwy6lm87hf5ssk79hv2"
     assert len(mainnet.x_only_public_key_hex) == 64
     assert mainnet.public_key_hex.startswith("02")

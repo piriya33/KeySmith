@@ -22,6 +22,16 @@ def test_base58_validation_reports_illegal_character_positions():
     assert "except 0, O, I, and l" in result.guide
 
 
+def test_base58_case_insensitive_validation_keeps_original_alphabet_rules():
+    valid_upper = SearchConfig("mainnet", "p2pkh", "contains", "L", False, 1)
+    invalid_upper = SearchConfig("mainnet", "p2pkh", "contains", "O", False, 1)
+
+    assert validate_pattern(valid_upper).valid
+    invalid = validate_pattern(invalid_upper)
+    assert not invalid.valid
+    assert invalid.invalid_characters == [{"char": "O", "index": 0}]
+
+
 def test_bech32_validation_normalizes_pattern_and_reports_bad_chars():
     config = SearchConfig("mainnet", "p2wpkh", "contains", "QZ!", False, 1)
 

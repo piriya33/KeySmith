@@ -59,12 +59,13 @@ def validate_pattern(config: SearchConfig) -> ValidationResult:
     fixed_prefix = address_fixed_prefix(config.network, config.address_type)
     guide = alphabet_guide(config.address_type)
     normalized = normalize_pattern(config)
+    validation_pattern = normalized if config.address_type in {"p2wpkh", "p2tr"} else config.pattern
     prefix_conflict = (
         config.match_mode == "prefix"
         and normalized
         and not _prefix_is_compatible(normalized, fixed_prefix, config)
     )
-    invalid = [] if prefix_conflict else _invalid_for_config(normalized, guide["alphabet"], config)
+    invalid = [] if prefix_conflict else _invalid_for_config(validation_pattern, guide["alphabet"], config)
 
     message = "Pattern is valid."
     valid = True
