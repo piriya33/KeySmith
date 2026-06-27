@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Keysmith</title>
+    <link rel="stylesheet" href="/static/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="mast">
+        <div>
+          <p class="eyebrow">Local educational vanity search</p>
+          <h1>Keysmith</h1>
+        </div>
+        <p class="safety">Keys are generated locally. Treat any private key shown here as sensitive educational material, not a production wallet.</p>
+      </section>
+
+      <section class="workspace">
+        <form id="search-form" class="panel controls">
+          <div class="field-row">
+            <label for="network">Network</label>
+            <select id="network" name="network">
+              <option value="mainnet">Bitcoin mainnet</option>
+              <option value="testnet">Bitcoin testnet</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="address-type">Address type</label>
+            <select id="address-type" name="address_type">
+              <option value="p2pkh">P2PKH</option>
+              <option value="p2wpkh">P2WPKH</option>
+              <option value="p2tr">P2TR</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="match-mode">Match</label>
+            <select id="match-mode" name="match_mode">
+              <option value="prefix">Prefix</option>
+              <option value="suffix">Suffix</option>
+              <option value="contains">Anywhere</option>
+            </select>
+          </div>
+
+          <div class="field-row">
+            <label for="pattern">Pattern</label>
+            <input id="pattern" name="pattern" autocomplete="off" value="1A">
+          </div>
+
+          <div class="validation-preview" id="pattern-preview" aria-live="polite"></div>
+          <p class="message" id="validation-message"></p>
+
+          <div class="guide">
+            <span id="guide-name">Base58</span>
+            <code id="guide-alphabet"></code>
+            <p id="guide-copy"></p>
+          </div>
+
+          <label class="check">
+            <input id="case-sensitive" type="checkbox" checked>
+            <span>Case-sensitive matching for Base58</span>
+          </label>
+
+          <div class="field-row">
+            <label for="workers">Workers</label>
+            <input id="workers" type="number" min="1" max="8" value="2">
+          </div>
+
+          <div class="actions">
+            <button id="start-button" type="submit">Start</button>
+            <button id="stop-button" type="button" class="danger">Stop</button>
+          </div>
+        </form>
+
+        <section class="panel telemetry">
+          <div class="status-line">
+            <span>Status</span>
+            <strong id="status">idle</strong>
+          </div>
+
+          <div class="metrics">
+            <div><span>Attempts</span><strong id="attempts">0</strong></div>
+            <div><span>Attempts/sec</span><strong id="rate">0</strong></div>
+            <div><span>Elapsed</span><strong id="elapsed">0s</strong></div>
+            <div><span>Chance so far</span><strong id="chance">0%</strong></div>
+          </div>
+
+          <div class="educational">
+            <h2>Working</h2>
+            <ol id="process-steps"></ol>
+          </div>
+
+          <div class="educational">
+            <h2>Format</h2>
+            <dl class="breakdown">
+              <div><dt>Fixed prefix</dt><dd id="fixed-prefix">1</dd></div>
+              <div><dt>Searchable pattern</dt><dd id="searchable-pattern">A</dd></div>
+              <div><dt>Estimate</dt><dd id="expected-time">Waiting for speed</dd></div>
+            </dl>
+            <p id="difficulty-note">Each extra character multiplies the expected attempts by the address alphabet size.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="panel result-panel" id="result-panel" hidden>
+        <div>
+          <h2>Found Match</h2>
+          <p class="warning">Private keys can spend funds sent to the address. Use this result for education only.</p>
+        </div>
+        <div class="result-grid" id="result-grid"></div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

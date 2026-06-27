@@ -94,3 +94,12 @@ def test_start_status_and_stop_search():
     assert status.status_code == 200
     assert stop.status_code == 200
     assert status.get_json()["status"] in {"running", "found", "stopped"}
+
+
+def test_index_serves_keysmith_ui():
+    client = client_with_fake_search()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"Keysmith" in response.data
