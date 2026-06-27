@@ -46,3 +46,13 @@ def test_expected_seconds_uses_current_rate_and_handles_zero_speed():
     assert expected_attempts(0.25) == approx(4)
     assert expected_seconds(100, 25) == approx(4)
     assert expected_seconds(100, 0) is None
+
+
+def test_nostr_prefix_estimate_subtracts_npub_fixed_prefix():
+    config = SearchConfig("nostr", "npub", "prefix", "npub1ace", False, 1, target="nostr")
+
+    estimate = estimate_probability(config)
+
+    assert estimate.effective_pattern == "ace"
+    assert estimate.effective_length == 3
+    assert estimate.probability == approx(1 / 32**3)

@@ -120,3 +120,14 @@ def test_stop_prevents_attempt_count_after_in_flight_generation_finishes():
     time.sleep(0.02)
 
     assert session.snapshot()["attempts"] == 0
+
+
+def test_nostr_snapshot_uses_npub_format_breakdown():
+    session = SearchSession(generator=lambda config: result("npub1ace"))
+    config = SearchConfig("nostr", "npub", "prefix", "npub1ace", False, 1, target="nostr")
+
+    snapshot = session.start(config)
+
+    assert snapshot["format_breakdown"]["fixed_prefix"] == "npub1"
+    assert snapshot["format_breakdown"]["searchable_pattern"] == "ace"
+    assert "Nostr public key" in snapshot["process_steps"][2]

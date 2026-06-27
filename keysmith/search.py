@@ -6,7 +6,7 @@ import threading
 import time
 from typing import Callable, Dict, List
 
-from keysmith.addressing import AddressResult, create_address_result, generate_private_key_hex
+from keysmith.addressing import AddressResult, create_address_result, create_nostr_result, generate_private_key_hex
 from keysmith.estimates import (
     cumulative_chance,
     effective_pattern,
@@ -98,7 +98,7 @@ class SearchSession:
                 "config": asdict(config) if config else None,
                 "result": result,
                 "error": self._error,
-                "process_steps": process_steps(),
+                "process_steps": process_steps(config),
                 "format_breakdown": format_breakdown(config) if config else {},
             }
 
@@ -136,6 +136,8 @@ class SearchSession:
 
     @staticmethod
     def _generate_once(config: SearchConfig) -> AddressResult:
+        if config.target == "nostr":
+            return create_nostr_result(generate_private_key_hex())
         return create_address_result(generate_private_key_hex(), config.network, config.address_type)
 
     def _finish(self, run_id: int, status: str) -> None:
@@ -160,7 +162,14 @@ def safe_worker_count(requested: int) -> int:
     return max(1, min(requested, cpu_count, 8))
 
 
-def process_steps() -> List[str]:
+def process_steps(config: SearchConfig | None = None) -> List[str]:
+    if config and config.target == "nostr":
+        return [
+            "Generating a random private key with operating-system randomness.",
+            "Deriving the secp256k1 x-only public key locally.",
+            "Encoding the Nostr public key as an npub Bech32 string.",
+            "Checking the npub against the vanity rule.",
+        ]
     return [
         "Generating a random private key with operating-system randomness.",
         "Deriving the secp256k1 public key locally.",
@@ -171,11 +180,14 @@ def process_steps() -> List[str]:
 
 def format_breakdown(config: SearchConfig) -> Dict[str, str]:
     fixed_prefix = address_fixed_prefix(config.network, config.address_type)
+    family = "Nostr public key" if config.target == "nostr" else "Bitcoin address"
     return {
+        "target": config.target,
+        "family": family,
         "network": config.network,
         "address_type": config.address_type,
         "fixed_prefix": fixed_prefix,
         "searchable_pattern": effective_pattern(config),
         "match_mode": config.match_mode,
-        "explanation": "The fixed prefix comes from the network and address type; the remaining pattern drives the search difficulty.",
+        "explanation": "The fixed prefix comes from the selected format; the remaining pattern drives the search difficulty.",
     }

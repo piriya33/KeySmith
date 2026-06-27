@@ -7,7 +7,10 @@ from keysmith.addressing import BASE58_ALPHABET, BECH32_ALPHABET
 
 
 NETWORKS = ("mainnet", "testnet")
-ADDRESS_TYPES = ("p2pkh", "p2wpkh", "p2tr")
+TARGETS = ("bitcoin", "nostr")
+ADDRESS_TYPES = ("p2pkh", "p2wpkh", "p2tr", "npub")
+BITCOIN_ADDRESS_TYPES = ("p2pkh", "p2wpkh", "p2tr")
+NOSTR_ADDRESS_TYPES = ("npub",)
 MATCH_MODES = ("prefix", "suffix", "contains")
 
 BASE58_GUIDE = {
@@ -30,6 +33,7 @@ class SearchConfig:
     pattern: str
     case_sensitive: bool
     workers: int
+    target: str = "bitcoin"
 
 
 @dataclass(frozen=True)
@@ -59,7 +63,7 @@ def validate_pattern(config: SearchConfig) -> ValidationResult:
     fixed_prefix = address_fixed_prefix(config.network, config.address_type)
     guide = alphabet_guide(config.address_type)
     normalized = normalize_pattern(config)
-    validation_pattern = normalized if config.address_type in {"p2wpkh", "p2tr"} else config.pattern
+    validation_pattern = normalized if uses_bech32_alphabet(config.address_type) else config.pattern
     prefix_conflict = (
         config.match_mode == "prefix"
         and normalized
@@ -92,8 +96,16 @@ def validate_pattern(config: SearchConfig) -> ValidationResult:
 
 
 def _validate_config_shape(config: SearchConfig) -> None:
-    if config.network not in NETWORKS:
-        raise ValueError(f"Unsupported network: {config.network}")
+    if config.target not in TARGETS:
+        raise ValueError(f"Unsupported target: {config.target}")
+    if config.target == "bitcoin" and config.network not in NETWORKS:
+        raise ValueError(f"Unsupported Bitcoin network: {config.network}")
+    if config.target == "nostr" and config.network != "nostr":
+        raise ValueError(f"Unsupported Nostr network: {config.network}")
+    if config.target == "bitcoin" and config.address_type not in BITCOIN_ADDRESS_TYPES:
+        raise ValueError(f"Unsupported Bitcoin address type: {config.address_type}")
+    if config.target == "nostr" and config.address_type not in NOSTR_ADDRESS_TYPES:
+        raise ValueError(f"Unsupported Nostr key type: {config.address_type}")
     if config.address_type not in ADDRESS_TYPES:
         raise ValueError(f"Unsupported address type: {config.address_type}")
     if config.match_mode not in MATCH_MODES:
@@ -109,7 +121,7 @@ def alphabet_guide(address_type: str) -> Dict[str, str]:
 
 
 def normalize_pattern(config: SearchConfig) -> str:
-    if config.address_type in {"p2wpkh", "p2tr"}:
+    if uses_bech32_alphabet(config.address_type):
         return config.pattern.lower()
     if config.case_sensitive:
         return config.pattern
@@ -126,7 +138,7 @@ def invalid_characters(pattern: str, alphabet: str) -> List[Dict[str, object]]:
 
 
 def _invalid_for_config(pattern: str, alphabet: str, config: SearchConfig) -> List[Dict[str, object]]:
-    if config.match_mode == "prefix" and config.address_type in {"p2wpkh", "p2tr"}:
+    if config.match_mode == "prefix" and uses_bech32_alphabet(config.address_type):
         for fixed_prefix in _possible_fixed_prefixes(config.network, config.address_type):
             if pattern.startswith(fixed_prefix):
                 offset = len(fixed_prefix)
@@ -140,6 +152,8 @@ def _invalid_for_config(pattern: str, alphabet: str, config: SearchConfig) -> Li
 
 
 def address_fixed_prefix(network: str, address_type: str) -> str:
+    if address_type == "npub":
+        return "npub1"
     if address_type == "p2pkh":
         return "1" if network == "mainnet" else "m/n"
     if address_type == "p2wpkh":
@@ -168,6 +182,10 @@ def _possible_fixed_prefixes(network: str, address_type: str) -> List[str]:
     if address_type == "p2pkh" and network == "testnet":
         return ["m", "n"]
     return [address_fixed_prefix(network, address_type)]
+
+
+def uses_bech32_alphabet(address_type: str) -> bool:
+    return address_type in {"p2wpkh", "p2tr", "npub"}
 
 
 def _prefixes_can_overlap(pattern: str, fixed_prefix: str) -> bool:

@@ -19,6 +19,14 @@
       <section class="workspace">
         <form id="search-form" class="panel controls">
           <div class="field-row">
+            <label for="target">Format</label>
+            <select id="target" name="target">
+              <option value="bitcoin">Bitcoin address</option>
+              <option value="nostr">Nostr public key</option>
+            </select>
+          </div>
+
+          <div class="field-row" id="network-row">
             <label for="network">Network</label>
             <select id="network" name="network">
               <option value="mainnet">Bitcoin mainnet</option>
@@ -27,7 +35,7 @@
           </div>
 
           <div class="field-row">
-            <label for="address-type">Address type</label>
+            <label for="address-type" id="address-type-label">Address type</label>
             <select id="address-type" name="address_type">
               <option value="p2pkh">P2PKH</option>
               <option value="p2wpkh">P2WPKH</option>
@@ -60,7 +68,7 @@
 
           <label class="check">
             <input id="case-sensitive" type="checkbox" checked>
-            <span>Case-sensitive matching for Base58</span>
+            <span id="case-sensitive-copy">Case-sensitive matching for Base58</span>
           </label>
 
           <div class="field-row">
@@ -99,7 +107,7 @@
               <div><dt>Searchable pattern</dt><dd id="searchable-pattern">A</dd></div>
               <div><dt>Estimate</dt><dd id="expected-time">Waiting for speed</dd></div>
             </dl>
-            <p id="difficulty-note">Each extra character multiplies the expected attempts by the address alphabet size.</p>
+          <p id="difficulty-note">Each extra character multiplies the expected attempts by the selected format alphabet size.</p>
           </div>
         </section>
       </section>
@@ -107,7 +115,7 @@
       <section class="panel result-panel" id="result-panel" hidden>
         <div>
           <h2>Found Match</h2>
-          <p class="warning">Private keys can spend funds sent to the address. Use this result for education only.</p>
+          <p class="warning" id="result-warning">Private keys can spend funds sent to the address. Use this result for education only.</p>
         </div>
         <div class="result-grid" id="result-grid"></div>
       </section>

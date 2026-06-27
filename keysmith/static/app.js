@@ -1,6 +1,9 @@
 const form = document.querySelector("#search-form");
+const targetInput = document.querySelector("#target");
 const networkInput = document.querySelector("#network");
+const networkRow = document.querySelector("#network-row");
 const addressTypeInput = document.querySelector("#address-type");
+const addressTypeLabel = document.querySelector("#address-type-label");
 const matchModeInput = document.querySelector("#match-mode");
 const patternInput = document.querySelector("#pattern");
 const caseSensitiveInput = document.querySelector("#case-sensitive");
@@ -10,6 +13,7 @@ const validationMessage = document.querySelector("#validation-message");
 const guideName = document.querySelector("#guide-name");
 const guideAlphabet = document.querySelector("#guide-alphabet");
 const guideCopy = document.querySelector("#guide-copy");
+const caseSensitiveCopy = document.querySelector("#case-sensitive-copy");
 const statusEl = document.querySelector("#status");
 const attemptsEl = document.querySelector("#attempts");
 const rateEl = document.querySelector("#rate");
@@ -21,21 +25,30 @@ const searchablePatternEl = document.querySelector("#searchable-pattern");
 const expectedTimeEl = document.querySelector("#expected-time");
 const resultPanel = document.querySelector("#result-panel");
 const resultGrid = document.querySelector("#result-grid");
+const resultWarning = document.querySelector("#result-warning");
 const startButton = document.querySelector("#start-button");
 const stopButton = document.querySelector("#stop-button");
 
 let pollTimer = null;
 let lastValidation = null;
+let options = null;
 
 function configPayload() {
+  const target = targetInput.value;
   return {
-    network: networkInput.value,
-    address_type: addressTypeInput.value,
+    target,
+    network: target === "nostr" ? "nostr" : networkInput.value,
+    address_type: target === "nostr" ? "npub" : addressTypeInput.value,
     match_mode: matchModeInput.value,
     pattern: patternInput.value,
     case_sensitive: caseSensitiveInput.checked,
     workers: Number(workersInput.value || 1),
   };
+}
+
+async function loadOptions() {
+  const response = await fetch("/api/options");
+  options = await response.json();
 }
 
 async function postJson(url, payload = {}) {
@@ -83,6 +96,30 @@ function renderValidation(data) {
   guideCopy.textContent = data.guide;
 }
 
+function renderTargetControls() {
+  const isNostr = targetInput.value === "nostr";
+  networkRow.hidden = isNostr;
+  addressTypeLabel.textContent = isNostr ? "Key type" : "Address type";
+  addressTypeInput.innerHTML = "";
+
+  const values = isNostr ? [["npub", "Nostr npub"]] : [["p2pkh", "P2PKH"], ["p2wpkh", "P2WPKH"], ["p2tr", "P2TR"]];
+  values.forEach(([value, label]) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    addressTypeInput.appendChild(option);
+  });
+
+  caseSensitiveInput.checked = !isNostr;
+  caseSensitiveInput.disabled = isNostr;
+  caseSensitiveCopy.textContent = isNostr ? "Nostr npub matching is lowercase Bech32" : "Case-sensitive matching for Base58";
+  if (isNostr && patternInput.value === "1A") {
+    patternInput.value = "npub1";
+  } else if (!isNostr && patternInput.value === "npub1") {
+    patternInput.value = "1A";
+  }
+}
+
 function renderSnapshot(snapshot) {
   statusEl.textContent = snapshot.status;
   attemptsEl.textContent = Number(snapshot.attempts || 0).toLocaleString();
@@ -116,13 +153,17 @@ function renderSnapshot(snapshot) {
 
 function renderResult(result) {
   resultPanel.hidden = false;
+  const isNostr = result.address_type === "npub";
+  resultWarning.textContent = isNostr
+    ? "The nsec private key can control a Nostr identity. Use this result for education only."
+    : "Private keys can spend funds sent to the address. Use this result for education only.";
   resultGrid.innerHTML = "";
   const fields = [
-    ["Address", result.address],
-    ["WIF private key", result.wif],
+    [isNostr ? "Nostr public key" : "Address", result.address],
+    [result.private_key_export_label || "WIF private key", result.nsec || result.wif],
     ["Private key hex", result.private_key_hex],
     ["Public key", result.public_key_hex],
-    ["Taproot x-only key", result.x_only_public_key_hex],
+    [isNostr ? "Nostr x-only public key" : "Taproot x-only key", result.x_only_public_key_hex],
   ].filter(([, value]) => value);
 
   fields.forEach(([label, value]) => {
@@ -199,11 +240,19 @@ stopButton.addEventListener("click", async () => {
   renderSnapshot(await postJson("/api/stop"));
 });
 
-[networkInput, addressTypeInput, matchModeInput, patternInput, caseSensitiveInput, workersInput].forEach((input) => {
+[targetInput, networkInput, addressTypeInput, matchModeInput, patternInput, caseSensitiveInput, workersInput].forEach((input) => {
   input.addEventListener("input", () => {
+    if (input === targetInput) {
+      renderTargetControls();
+    }
     lastValidation = null;
     validate().catch(() => {});
   });
 });
 
-validate().catch(() => {});
+loadOptions()
+  .catch(() => {})
+  .finally(() => {
+    renderTargetControls();
+    validate().catch(() => {});
+  });

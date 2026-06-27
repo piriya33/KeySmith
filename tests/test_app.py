@@ -30,7 +30,9 @@ def test_options_returns_supported_controls_and_guides():
     assert data["networks"] == ["mainnet", "testnet"]
     assert "p2tr" in data["address_types"]
     assert data["match_modes"] == ["prefix", "suffix", "contains"]
+    assert data["targets"] == ["bitcoin", "nostr"]
     assert "Base58" in data["guides"]["p2pkh"]["name"]
+    assert data["guides"]["npub"]["name"] == "Bech32"
 
 
 def test_validate_returns_invalid_character_positions():
@@ -94,6 +96,26 @@ def test_start_status_and_stop_search():
     assert status.status_code == 200
     assert stop.status_code == 200
     assert status.get_json()["status"] in {"running", "found", "stopped"}
+
+
+def test_start_accepts_nostr_public_key_search():
+    client = client_with_fake_search("npub1ace")
+
+    response = client.post(
+        "/api/start",
+        json={
+            "target": "nostr",
+            "network": "nostr",
+            "address_type": "npub",
+            "match_mode": "prefix",
+            "pattern": "npub1ace",
+            "case_sensitive": False,
+            "workers": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["config"]["target"] == "nostr"
 
 
 def test_index_serves_keysmith_ui():

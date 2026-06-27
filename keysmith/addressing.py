@@ -25,6 +25,8 @@ class AddressResult:
     wif: str
     public_key_hex: str
     x_only_public_key_hex: str | None = None
+    nsec: str | None = None
+    private_key_export_label: str = "WIF private key"
 
 
 def private_key_hex_from_int(value: int) -> str:
@@ -71,6 +73,29 @@ def create_address_result(private_key_hex: str, network: str, address_type: str)
     )
 
 
+def create_nostr_result(private_key_hex: str) -> AddressResult:
+    private_key = bytes.fromhex(private_key_hex)
+    if len(private_key) != 32:
+        raise ValueError("Private key must be 32 bytes")
+
+    public_key = PublicKey.from_valid_secret(private_key)
+    public_key_bytes = public_key.format(compressed=True)
+    x_only_public_key = public_key.format(compressed=False)[1:33]
+    npub = nostr_npub_from_hex(x_only_public_key.hex())
+    nsec = nostr_nsec_from_hex(private_key_hex)
+    return AddressResult(
+        address=npub,
+        network="nostr",
+        address_type="npub",
+        private_key_hex=private_key_hex,
+        wif="",
+        public_key_hex=public_key_bytes.hex(),
+        x_only_public_key_hex=x_only_public_key.hex(),
+        nsec=nsec,
+        private_key_export_label="nsec private key",
+    )
+
+
 def hash160(data: bytes) -> bytes:
     sha = hashlib.sha256(data).digest()
     ripe = hashlib.new("ripemd160")
@@ -113,6 +138,21 @@ def p2wpkh_address(public_key_bytes: bytes, network: str) -> str:
 def p2tr_address(x_only_public_key: bytes, network: str) -> str:
     hrp = "bc" if network == "mainnet" else "tb"
     return encode_segwit_address(hrp, 1, x_only_public_key, "bech32m")
+
+
+def nostr_npub_from_hex(public_key_hex: str) -> str:
+    return nostr_bech32_from_hex("npub", public_key_hex)
+
+
+def nostr_nsec_from_hex(private_key_hex: str) -> str:
+    return nostr_bech32_from_hex("nsec", private_key_hex)
+
+
+def nostr_bech32_from_hex(hrp: str, value_hex: str) -> str:
+    data = bytes.fromhex(value_hex)
+    if len(data) != 32:
+        raise ValueError("Nostr bare keys must be 32 bytes")
+    return bech32_encode(hrp, convert_bits(data, 8, 5, True), "bech32")
 
 
 def taproot_output_key(private_key: bytes) -> bytes:

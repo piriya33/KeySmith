@@ -73,3 +73,14 @@ def test_fixed_prefixes_match_network_and_address_type():
     assert address_fixed_prefix("mainnet", "p2pkh") == "1"
     assert address_fixed_prefix("testnet", "p2wpkh") == "tb1q"
     assert address_fixed_prefix("mainnet", "p2tr") == "bc1p"
+
+
+def test_nostr_prefix_validation_accounts_for_npub_fixed_prefix():
+    valid = SearchConfig("nostr", "npub", "prefix", "npub1ace", False, 1, target="nostr")
+    conflict = SearchConfig("nostr", "npub", "prefix", "nsec1ace", False, 1, target="nostr")
+
+    result = validate_pattern(valid)
+
+    assert result.valid
+    assert result.fixed_prefix == "npub1"
+    assert not validate_pattern(conflict).valid

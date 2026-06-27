@@ -1,8 +1,8 @@
 # Keysmith
 
-Keysmith is a local educational Bitcoin vanity address generator. It runs on your Mac, opens a browser UI on `localhost`, and generates keys locally for learning purposes.
+Keysmith is a local educational vanity key and address generator. It runs on your Mac, opens a browser UI on `localhost`, and generates keys locally for learning purposes.
 
-Keysmith is not a production wallet. Private keys are sensitive. Do not use keys from an educational tool to store meaningful funds.
+Keysmith currently supports Bitcoin vanity addresses and Nostr `npub` public keys. It is not a production wallet or identity manager. Private keys are sensitive. Do not use keys from an educational tool to store meaningful funds or important identities.
 
 ## Setup
 

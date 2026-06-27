@@ -6,12 +6,14 @@ from flask import Flask, jsonify, request, send_from_directory
 
 from keysmith.search import SearchSession
 from keysmith.validation import (
-    ADDRESS_TYPES,
     BASE58_GUIDE,
     BECH32_GUIDE,
+    BITCOIN_ADDRESS_TYPES,
     MATCH_MODES,
     NETWORKS,
+    NOSTR_ADDRESS_TYPES,
     SearchConfig,
+    TARGETS,
     validate_pattern,
 )
 
@@ -29,12 +31,15 @@ def create_app(session: SearchSession | None = None) -> Flask:
         return jsonify(
             {
                 "networks": list(NETWORKS),
-                "address_types": list(ADDRESS_TYPES),
+                "targets": list(TARGETS),
+                "address_types": list(BITCOIN_ADDRESS_TYPES),
+                "nostr_address_types": list(NOSTR_ADDRESS_TYPES),
                 "match_modes": list(MATCH_MODES),
                 "guides": {
                     "p2pkh": BASE58_GUIDE,
                     "p2wpkh": BECH32_GUIDE,
                     "p2tr": BECH32_GUIDE,
+                    "npub": BECH32_GUIDE,
                 },
             }
         )
@@ -64,13 +69,15 @@ def create_app(session: SearchSession | None = None) -> Flask:
 
 
 def parse_config(payload: dict) -> SearchConfig:
+    target = str(payload.get("target", "bitcoin"))
     return SearchConfig(
-        network=str(payload.get("network", "mainnet")),
-        address_type=str(payload.get("address_type", "p2pkh")),
+        network=str(payload.get("network", "nostr" if target == "nostr" else "mainnet")),
+        address_type=str(payload.get("address_type", "npub" if target == "nostr" else "p2pkh")),
         match_mode=str(payload.get("match_mode", "prefix")),
         pattern=str(payload.get("pattern", "")),
         case_sensitive=bool(payload.get("case_sensitive", False)),
         workers=int(payload.get("workers", 1)),
+        target=target,
     )
 
 

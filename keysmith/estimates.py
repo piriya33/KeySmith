@@ -10,6 +10,7 @@ APPROX_ADDRESS_LENGTHS = {
     "p2pkh": 34,
     "p2wpkh": 42,
     "p2tr": 62,
+    "npub": 63,
 }
 
 
@@ -63,7 +64,7 @@ def effective_pattern(config: SearchConfig) -> str:
         return pattern
 
     prefixes = [address_fixed_prefix(config.network, config.address_type)]
-    if config.address_type == "p2pkh" and config.network == "testnet":
+    if config.target == "bitcoin" and config.address_type == "p2pkh" and config.network == "testnet":
         prefixes = ["m", "n"]
 
     for fixed_prefix in prefixes:
