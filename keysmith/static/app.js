@@ -232,13 +232,35 @@ function renderResult(result) {
 
 function renderPaperView(result) {
   const isNostr = result.address_type === "npub";
+  const privateExport = result.nsec || result.wif;
   const rows = [
     [isNostr ? "Nostr public key (npub)" : "Public address", result.address],
-    [isNostr ? "Private key (nsec)" : "Private key (WIF)", result.nsec || result.wif],
+    [isNostr ? "Private key (nsec)" : "Private key (WIF)", privateExport],
     ["Raw private key hex", result.private_key_hex],
     ["Format", isNostr ? "Nostr npub" : `${result.network} ${result.address_type.toUpperCase()}`],
   ].filter(([, value]) => value);
   paperGrid.innerHTML = "";
+  if (result.paper_qr_codes) {
+    const qrSection = document.createElement("div");
+    qrSection.className = "paper-qr-grid";
+    const publicQr = createQrCard(
+      isNostr ? "Public npub QR" : "Public address QR",
+      result.paper_qr_codes.public,
+      result.address,
+      "Safe to scan for receiving or identity lookup."
+    );
+    const privateQr = createQrCard(
+      isNostr ? "Private nsec QR" : "Private key QR",
+      result.paper_qr_codes.private,
+      privateExport,
+      isNostr
+        ? "Anyone who scans this can control the Nostr identity."
+        : "Anyone who scans this can spend funds sent to the address.",
+      true
+    );
+    qrSection.append(publicQr, privateQr);
+    paperGrid.appendChild(qrSection);
+  }
   rows.forEach(([label, value]) => {
     const block = document.createElement("div");
     block.className = "paper-item";
@@ -249,6 +271,23 @@ function renderPaperView(result) {
     block.append(labelEl, valueEl);
     paperGrid.appendChild(block);
   });
+}
+
+function createQrCard(label, imageSource, value, warning, sensitive = false) {
+  const block = document.createElement("div");
+  block.className = sensitive ? "qr-card sensitive" : "qr-card";
+  const title = document.createElement("strong");
+  title.textContent = label;
+  const image = document.createElement("img");
+  image.src = imageSource;
+  image.alt = label;
+  const copy = document.createElement("p");
+  copy.className = sensitive ? "qr-warning" : "qr-note";
+  copy.textContent = warning;
+  const valueEl = document.createElement("code");
+  valueEl.textContent = value;
+  block.append(title, image, copy, valueEl);
+  return block;
 }
 
 function startPolling() {

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import base64
+import io
 import webbrowser
 
 from flask import Flask, jsonify, request, send_from_directory
+import qrcode
+from qrcode.image.svg import SvgPathImage
 
 from keysmith.addressing import derive_from_secret
 from keysmith.search import SearchSession
@@ -56,7 +60,7 @@ def create_app(session: SearchSession | None = None) -> Flask:
         validation = validate_pattern(config)
         if not validation.valid:
             return jsonify(validation.to_dict()), 400
-        return jsonify(search_session.start(config))
+        return jsonify(with_paper_qr_codes(search_session.start(config)))
 
     @app.post("/api/stop")
     def stop():
@@ -64,7 +68,7 @@ def create_app(session: SearchSession | None = None) -> Flask:
 
     @app.get("/api/status")
     def status():
-        return jsonify(search_session.snapshot())
+        return jsonify(with_paper_qr_codes(search_session.snapshot()))
 
     @app.post("/api/verify-secret")
     def verify_secret():
@@ -104,6 +108,36 @@ def result_to_public_dict(result) -> dict:
         "public_key_hex": result.public_key_hex,
         "x_only_public_key_hex": result.x_only_public_key_hex,
     }
+
+
+def with_paper_qr_codes(snapshot: dict) -> dict:
+    result = snapshot.get("result")
+    if not result:
+        return snapshot
+
+    private_export = result.get("nsec") or result.get("wif")
+    if not private_export:
+        return snapshot
+
+    result["paper_qr_codes"] = {
+        "public": qr_svg_data_uri(result["address"]),
+        "private": qr_svg_data_uri(private_export),
+    }
+    return snapshot
+
+
+def qr_svg_data_uri(value: str) -> str:
+    image = qrcode.make(
+        value,
+        image_factory=SvgPathImage,
+        box_size=8,
+        border=2,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+    )
+    buffer = io.BytesIO()
+    image.save(buffer)
+    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def main() -> None:

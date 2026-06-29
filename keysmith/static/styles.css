@@ -282,6 +282,53 @@ ol {
   gap: 12px;
 }
 
+.paper-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.qr-card {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.qr-card.sensitive {
+  border-color: #f04438;
+  background: #fff7f7;
+}
+
+.qr-card img {
+  width: min(100%, 220px);
+  aspect-ratio: 1;
+  background: #fff;
+  border: 1px solid var(--line);
+  justify-self: center;
+}
+
+.qr-card code {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 0.78rem;
+}
+
+.qr-note,
+.qr-warning {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.qr-warning {
+  color: var(--bad-ink);
+  font-weight: 700;
+}
+
 .paper-item {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -329,7 +376,8 @@ ol {
   .workspace,
   .workspace.lower,
   .metrics,
-  .breakdown {
+  .breakdown,
+  .paper-qr-grid {
     grid-template-columns: 1fr;
   }
 

@@ -1,5 +1,5 @@
 from keysmith.addressing import AddressResult, create_address_result, private_key_hex_from_int
-from keysmith.app import create_app
+from keysmith.app import create_app, with_paper_qr_codes
 from keysmith.search import SearchSession
 
 
@@ -184,3 +184,14 @@ def test_verify_secret_accepts_raw_private_key_hex():
 
     assert response.status_code == 200
     assert response.get_json()["address"].startswith("npub1")
+
+
+def test_paper_qr_codes_are_added_to_found_result():
+    snapshot = {"result": fake_result("1hit").__dict__}
+
+    with_qr = with_paper_qr_codes(snapshot)
+
+    qr_codes = with_qr["result"]["paper_qr_codes"]
+    assert qr_codes["public"].startswith("data:image/svg+xml;base64,")
+    assert qr_codes["private"].startswith("data:image/svg+xml;base64,")
+    assert qr_codes["public"] != qr_codes["private"]
