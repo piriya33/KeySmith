@@ -132,6 +132,8 @@ def test_index_serves_keysmith_ui():
     assert b"P2PKH (Legacy Bitcoin Address)" in response.data
     assert b"P2WPKH (Segwit Address)" in response.data
     assert b"P2TR (Taproot Address)" in response.data
+    assert b"Probability Field" in response.data
+    assert b"Search Space" in response.data
 
 
 def test_verify_secret_derives_bitcoin_address():

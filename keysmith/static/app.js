@@ -15,6 +15,10 @@ const guideAlphabet = document.querySelector("#guide-alphabet");
 const guideCopy = document.querySelector("#guide-copy");
 const caseSensitiveCopy = document.querySelector("#case-sensitive-copy");
 const statusEl = document.querySelector("#status");
+const vizStatEl = document.querySelector("#viz-stat");
+const vizPond = document.querySelector("#viz-pond");
+const vizRing = document.querySelector("#viz-ring");
+const vizRingLabel = document.querySelector("#viz-ring-label");
 const attemptsEl = document.querySelector("#attempts");
 const rateEl = document.querySelector("#rate");
 const workerModeEl = document.querySelector("#worker-mode");
@@ -42,6 +46,8 @@ let pollTimer = null;
 let lastValidation = null;
 let options = null;
 let lastResult = null;
+let lastVizStatus = "idle";
+let hitDropShown = false;
 
 const DEFAULT_PATTERNS = {
   "bitcoin:mainnet:p2pkh": "1A",
@@ -167,6 +173,7 @@ function renderTargetControls() {
 
 function renderSnapshot(snapshot) {
   statusEl.textContent = snapshot.status;
+  renderSearchVisualization(snapshot);
   attemptsEl.textContent = Number(snapshot.attempts || 0).toLocaleString();
   rateEl.textContent = Math.round(snapshot.attempts_per_second || 0).toLocaleString();
   workerModeEl.textContent = snapshot.worker_mode || "-";
@@ -195,6 +202,88 @@ function renderSnapshot(snapshot) {
     stopPolling();
     startButton.disabled = false;
   }
+}
+
+function renderSearchVisualization(snapshot) {
+  const attempts = Number(snapshot.attempts || 0);
+  const expectedAttempts = Number(snapshot.expected_attempts || 0);
+  const status = snapshot.status || "idle";
+  const targetSpace = expectedAttempts > 0 ? expectedAttempts : null;
+  vizStatEl.textContent = targetSpace
+    ? `sampled ${attempts.toLocaleString()} / ~${formatLargeNumber(targetSpace)} target space`
+    : `sampled ${attempts.toLocaleString()} / waiting for estimate`;
+
+  const diameter = targetSpace ? targetRingDiameter(targetSpace) : 104;
+  vizRing.style.width = `${diameter}px`;
+  vizRing.style.height = `${diameter}px`;
+  vizRingLabel.textContent = targetSpace
+    ? `about 1 in ${formatLargeNumber(targetSpace)} attempts`
+    : "target ring appears when the search begins";
+
+  if (status !== lastVizStatus && status === "running") {
+    hitDropShown = false;
+    clearVizDrops();
+  }
+  lastVizStatus = status;
+
+  if (status === "running") {
+    spawnVizDrop(false);
+  } else if (status === "found" && !hitDropShown) {
+    clearVizDrops();
+    spawnVizDrop(true);
+    hitDropShown = true;
+  }
+}
+
+function targetRingDiameter(expectedAttempts) {
+  const difficulty = Math.log10(Math.max(1, expectedAttempts));
+  return Math.max(34, Math.min(150, 150 - difficulty * 12));
+}
+
+function spawnVizDrop(hit) {
+  if (!vizPond || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return;
+  }
+  const dot = document.createElement("i");
+  dot.className = hit ? "viz-drop hit" : "viz-drop";
+  const width = vizPond.clientWidth || 1;
+  const height = vizPond.clientHeight || 1;
+  let x;
+  let y;
+  if (hit) {
+    const ring = Math.max(28, vizRing.clientWidth || 80);
+    x = width / 2 + (Math.random() - 0.5) * ring * 0.52;
+    y = height / 2 + (Math.random() - 0.5) * ring * 0.52;
+  } else {
+    const targetRadius = Math.max(20, (vizRing.clientWidth || 80) / 2 + 10);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    for (let tries = 0; tries < 20; tries += 1) {
+      x = 18 + Math.random() * Math.max(1, width - 36);
+      y = 18 + Math.random() * Math.max(1, height - 36);
+      if (Math.hypot(x - centerX, y - centerY) > targetRadius) {
+        break;
+      }
+    }
+  }
+  dot.style.left = `${x}px`;
+  dot.style.top = `${y}px`;
+  vizPond.appendChild(dot);
+  window.setTimeout(() => dot.remove(), hit ? 3600 : 2800);
+}
+
+function clearVizDrops() {
+  vizPond.querySelectorAll(".viz-drop").forEach((drop) => drop.remove());
+}
+
+function formatLargeNumber(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "unknown";
+  }
+  if (value < 1_000_000) {
+    return Math.round(value).toLocaleString();
+  }
+  return value.toExponential(2).replace("+", "");
 }
 
 function renderResult(result) {

@@ -83,6 +83,20 @@
         </form>
 
         <section class="panel telemetry">
+          <div class="search-viz" id="search-viz" aria-label="Search probability visualization">
+            <div class="viz-header">
+              <div>
+                <p class="eyebrow">Probability Field</p>
+                <h2>Search Space</h2>
+              </div>
+              <div class="viz-stat" id="viz-stat">sampled 0 / waiting for estimate</div>
+            </div>
+            <div class="viz-pond" id="viz-pond">
+              <div class="viz-ring" id="viz-ring"></div>
+              <div class="viz-ring-label" id="viz-ring-label">target ring appears when the search begins</div>
+            </div>
+          </div>
+
           <div class="status-line">
             <span>Status</span>
             <strong id="status">idle</strong>
