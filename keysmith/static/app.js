@@ -209,15 +209,17 @@ function renderSearchVisualization(snapshot) {
   const expectedAttempts = Number(snapshot.expected_attempts || 0);
   const status = snapshot.status || "idle";
   const targetSpace = expectedAttempts > 0 ? expectedAttempts : null;
+  const searchedPattern = snapshot.estimate?.effective_pattern || "";
+  const searchedLength = searchedPattern.length;
   vizStatEl.textContent = targetSpace
     ? `sampled ${attempts.toLocaleString()} / ~${formatLargeNumber(targetSpace)} target space`
     : `sampled ${attempts.toLocaleString()} / waiting for estimate`;
 
-  const diameter = targetSpace ? targetRingDiameter(targetSpace) : 104;
+  const diameter = targetRingDiameter(searchedLength);
   vizRing.style.width = `${diameter}px`;
   vizRing.style.height = `${diameter}px`;
   vizRingLabel.textContent = targetSpace
-    ? `about 1 in ${formatLargeNumber(targetSpace)} attempts`
+    ? `${searchedLength || 0} searched ${searchedLength === 1 ? "character" : "characters"}; about 1 in ${formatLargeNumber(targetSpace)} attempts`
     : "target ring appears when the search begins";
 
   if (status !== lastVizStatus && status === "running") {
@@ -235,9 +237,11 @@ function renderSearchVisualization(snapshot) {
   }
 }
 
-function targetRingDiameter(expectedAttempts) {
-  const difficulty = Math.log10(Math.max(1, expectedAttempts));
-  return Math.max(34, Math.min(150, 150 - difficulty * 12));
+function targetRingDiameter(searchedLength) {
+  if (!searchedLength) {
+    return 104;
+  }
+  return Math.max(12, Math.min(150, 170 - searchedLength * 20));
 }
 
 function spawnVizDrop(hit) {
