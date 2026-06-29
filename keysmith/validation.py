@@ -156,7 +156,7 @@ def invalid_characters(pattern: str, alphabet: str) -> List[Dict[str, object]]:
 
 
 def _invalid_for_config(pattern: str, alphabet: str, config: SearchConfig) -> List[Dict[str, object]]:
-    if config.match_mode == "prefix" and uses_bech32_alphabet(config.address_type):
+    if config.match_mode in {"prefix", "prefix_suffix"} and uses_bech32_alphabet(config.address_type):
         for fixed_prefix in _possible_fixed_prefixes(config.network, config.address_type):
             if pattern.startswith(fixed_prefix):
                 offset = len(fixed_prefix)

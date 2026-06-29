@@ -102,6 +102,23 @@ def test_prefix_suffix_validation_reports_suffix_invalid_characters():
     assert result.invalid_suffix_characters == [{"char": "!", "index": 3}]
 
 
+def test_prefix_suffix_validation_ignores_bech32_fixed_prefix_characters():
+    config = SearchConfig(
+        "mainnet",
+        "p2wpkh",
+        "prefix_suffix",
+        "bc1qqxz",
+        False,
+        1,
+        suffix_pattern="xyz",
+    )
+
+    result = validate_pattern(config)
+
+    assert result.valid
+    assert result.invalid_characters == []
+
+
 def test_fixed_prefixes_match_network_and_address_type():
     assert address_fixed_prefix("mainnet", "p2pkh") == "1"
     assert address_fixed_prefix("testnet", "p2wpkh") == "tb1q"
