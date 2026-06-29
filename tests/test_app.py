@@ -29,7 +29,7 @@ def test_options_returns_supported_controls_and_guides():
     data = response.get_json()
     assert data["networks"] == ["mainnet", "testnet"]
     assert "p2tr" in data["address_types"]
-    assert data["match_modes"] == ["prefix", "suffix", "contains"]
+    assert data["match_modes"] == ["prefix", "suffix", "contains", "prefix_suffix"]
     assert data["targets"] == ["bitcoin", "nostr"]
     assert "Base58" in data["guides"]["p2pkh"]["name"]
     assert data["guides"]["npub"]["name"] == "Bech32"
@@ -134,6 +134,7 @@ def test_index_serves_keysmith_ui():
     assert b"P2TR (Taproot Address)" in response.data
     assert b"Probability Field" in response.data
     assert b"Search Space" in response.data
+    assert b"Prefix + suffix" in response.data
 
 
 def test_verify_secret_derives_bitcoin_address():

@@ -97,6 +97,7 @@ def parse_config(payload: dict) -> SearchConfig:
         case_sensitive=bool(payload.get("case_sensitive", False)),
         workers=int(payload.get("workers", 1)),
         target=target,
+        suffix_pattern=str(payload.get("suffix_pattern", "")),
     )
 
 

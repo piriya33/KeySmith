@@ -69,6 +69,39 @@ def test_suffix_and_contains_matching():
     assert matches_address("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", contains)
 
 
+def test_prefix_suffix_matching_requires_both_ends():
+    config = SearchConfig(
+        "mainnet",
+        "p2pkh",
+        "prefix_suffix",
+        "1Bg",
+        True,
+        1,
+        suffix_pattern="SAMH",
+    )
+
+    assert matches_address("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", config)
+    assert not matches_address("1BgGZ9tcN4rm9KBzDn7KprQz87SZ26XXXX", config)
+    assert not matches_address("1XxGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH", config)
+
+
+def test_prefix_suffix_validation_reports_suffix_invalid_characters():
+    config = SearchConfig(
+        "mainnet",
+        "p2wpkh",
+        "prefix_suffix",
+        "bc1qabc",
+        False,
+        1,
+        suffix_pattern="xyz!",
+    )
+
+    result = validate_pattern(config)
+
+    assert not result.valid
+    assert result.invalid_suffix_characters == [{"char": "!", "index": 3}]
+
+
 def test_fixed_prefixes_match_network_and_address_type():
     assert address_fixed_prefix("mainnet", "p2pkh") == "1"
     assert address_fixed_prefix("testnet", "p2wpkh") == "tb1q"

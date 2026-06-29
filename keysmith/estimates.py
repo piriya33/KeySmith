@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from keysmith.validation import SearchConfig, address_fixed_prefix, alphabet_guide, normalize_pattern
+from keysmith.validation import SearchConfig, address_fixed_prefix, alphabet_guide, normalize_pattern, normalize_suffix_pattern
 
 
 APPROX_ADDRESS_LENGTHS = {
@@ -60,7 +60,16 @@ def estimate_probability(config: SearchConfig) -> ProbabilityEstimate:
 
 def effective_pattern(config: SearchConfig) -> str:
     pattern = normalize_pattern(config)
+    if config.match_mode == "prefix_suffix":
+        return _effective_prefix_pattern(config, pattern) + normalize_suffix_pattern(config)
     if config.match_mode != "prefix":
+        return pattern
+
+    return _effective_prefix_pattern(config, pattern)
+
+
+def _effective_prefix_pattern(config: SearchConfig, pattern: str) -> str:
+    if config.match_mode not in {"prefix", "prefix_suffix"}:
         return pattern
 
     prefixes = [address_fixed_prefix(config.network, config.address_type)]

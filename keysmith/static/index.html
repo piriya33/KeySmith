@@ -49,15 +49,21 @@
               <option value="prefix">Prefix</option>
               <option value="suffix">Suffix</option>
               <option value="contains">Anywhere</option>
+              <option value="prefix_suffix">Prefix + suffix</option>
             </select>
           </div>
 
           <div class="field-row">
-            <label for="pattern">Pattern</label>
+            <label for="pattern" id="pattern-label">Pattern</label>
             <input id="pattern" name="pattern" autocomplete="off" value="1A">
           </div>
 
           <div class="validation-preview" id="pattern-preview" aria-live="polite"></div>
+          <div class="field-row" id="suffix-pattern-row" hidden>
+            <label for="suffix-pattern">Suffix</label>
+            <input id="suffix-pattern" name="suffix_pattern" autocomplete="off">
+          </div>
+          <div class="validation-preview" id="suffix-pattern-preview" aria-live="polite" hidden></div>
           <p class="message" id="validation-message"></p>
 
           <div class="guide">

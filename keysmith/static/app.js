@@ -5,10 +5,14 @@ const networkRow = document.querySelector("#network-row");
 const addressTypeInput = document.querySelector("#address-type");
 const addressTypeLabel = document.querySelector("#address-type-label");
 const matchModeInput = document.querySelector("#match-mode");
+const patternLabel = document.querySelector("#pattern-label");
 const patternInput = document.querySelector("#pattern");
+const suffixPatternRow = document.querySelector("#suffix-pattern-row");
+const suffixPatternInput = document.querySelector("#suffix-pattern");
 const caseSensitiveInput = document.querySelector("#case-sensitive");
 const workersInput = document.querySelector("#workers");
 const preview = document.querySelector("#pattern-preview");
+const suffixPreview = document.querySelector("#suffix-pattern-preview");
 const validationMessage = document.querySelector("#validation-message");
 const guideName = document.querySelector("#guide-name");
 const guideAlphabet = document.querySelector("#guide-alphabet");
@@ -68,6 +72,7 @@ function configPayload() {
     address_type: target === "nostr" ? "npub" : addressTypeInput.value,
     match_mode: matchModeInput.value,
     pattern: patternInput.value,
+    suffix_pattern: suffixPatternInput.value,
     case_sensitive: caseSensitiveInput.checked,
     workers: Number(workersInput.value || 1),
   };
@@ -80,14 +85,33 @@ function selectedPatternKey() {
   return `${target}:${network}:${addressType}`;
 }
 
-function updateDefaultPattern(force = false) {
+function updatePatternFields(force = false) {
   const nextPattern = DEFAULT_PATTERNS[selectedPatternKey()];
   if (!nextPattern) {
     return;
   }
-  patternInput.placeholder = nextPattern;
-  if (force || DEFAULT_PATTERN_VALUES.has(patternInput.value)) {
+  const combinedMode = matchModeInput.value === "prefix_suffix";
+  const prefixMode = matchModeInput.value === "prefix";
+  suffixPatternRow.hidden = !combinedMode;
+  suffixPreview.hidden = !combinedMode;
+  patternLabel.textContent = combinedMode ? "Prefix" : "Pattern";
+
+  if (prefixMode || combinedMode) {
+    patternInput.placeholder = nextPattern;
+  } else {
+    patternInput.placeholder = "vanity text";
+  }
+  if ((prefixMode || combinedMode) && (force || !patternInput.value || DEFAULT_PATTERN_VALUES.has(patternInput.value))) {
     patternInput.value = nextPattern;
+  }
+  if (!prefixMode && !combinedMode && (force || DEFAULT_PATTERN_VALUES.has(patternInput.value))) {
+    patternInput.value = "";
+  }
+  if (combinedMode) {
+    suffixPatternInput.placeholder = "ending text";
+    if (force || DEFAULT_PATTERN_VALUES.has(suffixPatternInput.value)) {
+      suffixPatternInput.value = "";
+    }
   }
 }
 
@@ -120,25 +144,30 @@ async function validate() {
 
 function renderValidation(data) {
   const invalid = new Map(data.invalid_characters.map((item) => [item.index, item.char]));
-  const pattern = patternInput.value;
-  preview.innerHTML = "";
-  for (let index = 0; index < pattern.length; index += 1) {
-    const span = document.createElement("span");
-    span.textContent = pattern[index];
-    if (invalid.has(index)) {
-      span.className = "invalid-char";
-      span.title = `${pattern[index]} is not valid for ${data.guide}`;
-    }
-    preview.appendChild(span);
-  }
-  if (!pattern) {
-    preview.textContent = "Type a vanity pattern";
-  }
+  renderPatternPreview(preview, patternInput.value, invalid, data.guide);
+  const invalidSuffix = new Map((data.invalid_suffix_characters || []).map((item) => [item.index, item.char]));
+  renderPatternPreview(suffixPreview, suffixPatternInput.value, invalidSuffix, data.guide);
   validationMessage.textContent = data.message;
   validationMessage.style.color = data.valid ? "#0f766e" : "#b42318";
   guideName.textContent = data.guide.startsWith("Base58") ? "Base58" : "Bech32";
   guideAlphabet.textContent = data.alphabet;
   guideCopy.textContent = data.guide;
+}
+
+function renderPatternPreview(container, pattern, invalid, guide) {
+  container.innerHTML = "";
+  for (let index = 0; index < pattern.length; index += 1) {
+    const span = document.createElement("span");
+    span.textContent = pattern[index];
+    if (invalid.has(index)) {
+      span.className = "invalid-char";
+      span.title = `${pattern[index]} is not valid for ${guide}`;
+    }
+    container.appendChild(span);
+  }
+  if (!pattern) {
+    container.textContent = "Type a vanity pattern";
+  }
 }
 
 function renderTargetControls() {
@@ -168,7 +197,7 @@ function renderTargetControls() {
   caseSensitiveInput.checked = !isNostr;
   caseSensitiveInput.disabled = isNostr;
   caseSensitiveCopy.textContent = isNostr ? "Nostr npub matching is lowercase Bech32" : "Case-sensitive matching for Base58";
-  updateDefaultPattern();
+  updatePatternFields();
 }
 
 function renderSnapshot(snapshot) {
@@ -494,12 +523,12 @@ function renderVerification(data) {
   });
 }
 
-[targetInput, networkInput, addressTypeInput, matchModeInput, patternInput, caseSensitiveInput, workersInput].forEach((input) => {
+[targetInput, networkInput, addressTypeInput, matchModeInput, patternInput, suffixPatternInput, caseSensitiveInput, workersInput].forEach((input) => {
   input.addEventListener("input", () => {
     if (input === targetInput) {
       renderTargetControls();
-    } else if (input === networkInput || input === addressTypeInput) {
-      updateDefaultPattern();
+    } else if (input === networkInput || input === addressTypeInput || input === matchModeInput) {
+      updatePatternFields();
     }
     lastValidation = null;
     validate().catch(() => {});
@@ -510,6 +539,6 @@ loadOptions()
   .catch(() => {})
   .finally(() => {
     renderTargetControls();
-    updateDefaultPattern(true);
+    updatePatternFields(true);
     validate().catch(() => {});
   });

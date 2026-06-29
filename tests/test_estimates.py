@@ -28,6 +28,24 @@ def test_base58_suffix_probability_uses_full_suffix_length():
     assert estimate.probability == approx(1 / 58**2)
 
 
+def test_prefix_suffix_estimate_combines_searchable_ends():
+    config = SearchConfig(
+        "mainnet",
+        "p2wpkh",
+        "prefix_suffix",
+        "bc1qabc",
+        False,
+        1,
+        suffix_pattern="xyz",
+    )
+
+    estimate = estimate_probability(config)
+
+    assert estimate.effective_pattern == "abcxyz"
+    assert estimate.effective_length == 6
+    assert estimate.probability == approx(1 / 32**6)
+
+
 def test_contains_estimate_is_easier_than_prefix_for_same_pattern():
     prefix = SearchConfig("mainnet", "p2pkh", "prefix", "Ab", True, 1)
     contains = SearchConfig("mainnet", "p2pkh", "contains", "Ab", True, 1)
