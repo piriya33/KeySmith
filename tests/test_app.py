@@ -1,4 +1,4 @@
-from keysmith.addressing import AddressResult
+from keysmith.addressing import AddressResult, create_address_result, private_key_hex_from_int
 from keysmith.app import create_app
 from keysmith.search import SearchSession
 
@@ -125,3 +125,38 @@ def test_index_serves_keysmith_ui():
 
     assert response.status_code == 200
     assert b"Keysmith" in response.data
+
+
+def test_verify_secret_derives_bitcoin_address():
+    client = client_with_fake_search()
+    known = create_address_result(private_key_hex_from_int(1), "mainnet", "p2wpkh")
+
+    response = client.post(
+        "/api/verify-secret",
+        json={
+            "secret": known.wif,
+            "target": "bitcoin",
+            "network": "mainnet",
+            "address_type": "p2wpkh",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["address"] == known.address
+
+
+def test_verify_secret_rejects_invalid_secret():
+    client = client_with_fake_search()
+
+    response = client.post(
+        "/api/verify-secret",
+        json={
+            "secret": "not-a-secret",
+            "target": "nostr",
+            "network": "nostr",
+            "address_type": "npub",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "Could not verify" in response.get_json()["message"]

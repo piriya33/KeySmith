@@ -17,6 +17,7 @@ const caseSensitiveCopy = document.querySelector("#case-sensitive-copy");
 const statusEl = document.querySelector("#status");
 const attemptsEl = document.querySelector("#attempts");
 const rateEl = document.querySelector("#rate");
+const workerModeEl = document.querySelector("#worker-mode");
 const elapsedEl = document.querySelector("#elapsed");
 const chanceEl = document.querySelector("#chance");
 const processStepsEl = document.querySelector("#process-steps");
@@ -28,6 +29,10 @@ const resultGrid = document.querySelector("#result-grid");
 const resultWarning = document.querySelector("#result-warning");
 const startButton = document.querySelector("#start-button");
 const stopButton = document.querySelector("#stop-button");
+const verifySecretInput = document.querySelector("#verify-secret");
+const verifyButton = document.querySelector("#verify-button");
+const verifyMessage = document.querySelector("#verify-message");
+const verifyResult = document.querySelector("#verify-result");
 
 let pollTimer = null;
 let lastValidation = null;
@@ -124,6 +129,7 @@ function renderSnapshot(snapshot) {
   statusEl.textContent = snapshot.status;
   attemptsEl.textContent = Number(snapshot.attempts || 0).toLocaleString();
   rateEl.textContent = Math.round(snapshot.attempts_per_second || 0).toLocaleString();
+  workerModeEl.textContent = snapshot.worker_mode || "-";
   elapsedEl.textContent = formatDuration(snapshot.elapsed_seconds || 0);
   chanceEl.textContent = formatPercent(snapshot.cumulative_chance || 0);
 
@@ -239,6 +245,46 @@ form.addEventListener("submit", async (event) => {
 stopButton.addEventListener("click", async () => {
   renderSnapshot(await postJson("/api/stop"));
 });
+
+verifyButton.addEventListener("click", async () => {
+  verifyResult.innerHTML = "";
+  verifyMessage.textContent = "Checking locally...";
+  verifyMessage.style.color = "#5c6a76";
+  try {
+    const data = await postJson("/api/verify-secret", {
+      secret: verifySecretInput.value.trim(),
+      ...configPayload(),
+    });
+    verifyMessage.textContent = "Secret matches the selected format.";
+    verifyMessage.style.color = "#0f766e";
+    renderVerification(data);
+  } catch (error) {
+    verifyMessage.textContent = error.data?.message || error.message;
+    verifyMessage.style.color = "#b42318";
+  }
+});
+
+function renderVerification(data) {
+  const rows = [
+    ["Derived public value", data.address],
+    ["Public key", data.public_key_hex],
+    ["X-only public key", data.x_only_public_key_hex],
+  ].filter(([, value]) => value);
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "result-item";
+    const labelEl = document.createElement("strong");
+    labelEl.textContent = label;
+    const valueEl = document.createElement("code");
+    valueEl.textContent = value;
+    const copy = document.createElement("button");
+    copy.type = "button";
+    copy.textContent = "Copy";
+    copy.addEventListener("click", () => navigator.clipboard.writeText(value));
+    row.append(labelEl, valueEl, copy);
+    verifyResult.appendChild(row);
+  });
+}
 
 [targetInput, networkInput, addressTypeInput, matchModeInput, patternInput, caseSensitiveInput, workersInput].forEach((input) => {
   input.addEventListener("input", () => {

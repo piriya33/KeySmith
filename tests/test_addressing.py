@@ -4,6 +4,7 @@ from keysmith.addressing import (
     create_candidate_result,
     create_nostr_result,
     finalize_candidate_result,
+    derive_from_secret,
     nostr_npub_from_hex,
     private_key_hex_from_int,
 )
@@ -75,3 +76,21 @@ def test_candidate_generation_defers_private_key_exports_until_finalize():
 
     assert final.address == candidate.address
     assert final.wif.startswith(("K", "L"))
+
+
+def test_derive_from_wif_verifies_bitcoin_backup():
+    original = create_address_result(private_key_hex_from_int(1), "mainnet", "p2wpkh")
+
+    derived = derive_from_secret(original.wif, "bitcoin", "mainnet", "p2wpkh")
+
+    assert derived.address == original.address
+    assert derived.private_key_hex == original.private_key_hex
+
+
+def test_derive_from_nsec_verifies_nostr_backup():
+    original = create_nostr_result(private_key_hex_from_int(1))
+
+    derived = derive_from_secret(original.nsec, "nostr", "nostr", "npub")
+
+    assert derived.address == original.address
+    assert derived.nsec == original.nsec

@@ -91,6 +91,7 @@
           <div class="metrics">
             <div><span>Attempts</span><strong id="attempts">0</strong></div>
             <div><span>Attempts/sec</span><strong id="rate">0</strong></div>
+            <div><span>Worker mode</span><strong id="worker-mode">-</strong></div>
             <div><span>Elapsed</span><strong id="elapsed">0s</strong></div>
             <div><span>Chance so far</span><strong id="chance">0%</strong></div>
           </div>
@@ -118,6 +119,31 @@
           <p class="warning" id="result-warning">Private keys can spend funds sent to the address. Use this result for education only.</p>
         </div>
         <div class="result-grid" id="result-grid"></div>
+      </section>
+
+      <section class="workspace lower">
+        <section class="panel">
+          <h2>Offline Checklist</h2>
+          <ul class="checklist">
+            <li>Use a clean offline machine and verify the app before generating keys.</li>
+            <li>Write secrets by hand or use an offline printer with no storage or networking.</li>
+            <li>Verify the written WIF or nsec below before deleting anything.</li>
+            <li>Store duplicate copies separately; paper can be lost, damaged, or misread.</li>
+            <li>Wipe the machine/storage properly. Deleting the app does not erase memory, logs, swap, screenshots, or backups.</li>
+          </ul>
+        </section>
+
+        <section class="panel verifier">
+          <h2>Verify Backup</h2>
+          <p class="safety">Paste a WIF or nsec while offline to derive the public address or npub and compare it with your paper backup.</p>
+          <div class="field-row">
+            <label for="verify-secret">Secret to verify</label>
+            <input id="verify-secret" autocomplete="off" placeholder="WIF or nsec1...">
+          </div>
+          <button id="verify-button" type="button">Verify</button>
+          <p class="message" id="verify-message"></p>
+          <div class="result-grid" id="verify-result"></div>
+        </section>
       </section>
     </main>
 

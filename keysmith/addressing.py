@@ -163,6 +163,17 @@ def base58check_encode(version: bytes, payload: bytes) -> str:
     return base58_encode(data + checksum)
 
 
+def base58check_decode(value: str) -> bytes:
+    data = base58_decode(value)
+    if len(data) < 5:
+        raise ValueError("Base58Check value is too short")
+    payload, checksum = data[:-4], data[-4:]
+    expected = hashlib.sha256(hashlib.sha256(payload).digest()).digest()[:4]
+    if checksum != expected:
+        raise ValueError("Base58Check checksum mismatch")
+    return payload
+
+
 def base58_encode(data: bytes) -> str:
     number = int.from_bytes(data, "big")
     encoded = ""
@@ -172,6 +183,17 @@ def base58_encode(data: bytes) -> str:
 
     leading_zeroes = len(data) - len(data.lstrip(b"\x00"))
     return "1" * leading_zeroes + (encoded or "")
+
+
+def base58_decode(value: str) -> bytes:
+    number = 0
+    for char in value:
+        if char not in BASE58_ALPHABET:
+            raise ValueError(f"Invalid Base58 character: {char}")
+        number = number * 58 + BASE58_ALPHABET.index(char)
+    decoded = number.to_bytes((number.bit_length() + 7) // 8, "big") if number else b""
+    leading_zeroes = len(value) - len(value.lstrip("1"))
+    return b"\x00" * leading_zeroes + decoded
 
 
 def encode_wif(private_key: bytes, network: str) -> str:
@@ -207,6 +229,37 @@ def nostr_bech32_from_hex(hrp: str, value_hex: str) -> str:
     if len(data) != 32:
         raise ValueError("Nostr bare keys must be 32 bytes")
     return bech32_encode(hrp, convert_bits(data, 8, 5, True), "bech32")
+
+
+def derive_from_secret(secret: str, target: str, network: str, address_type: str) -> AddressResult:
+    if target == "nostr":
+        private_key_hex = private_key_hex_from_nsec(secret)
+        return create_nostr_result(private_key_hex)
+    private_key_hex = private_key_hex_from_wif(secret, network)
+    return create_address_result(private_key_hex, network, address_type)
+
+
+def private_key_hex_from_wif(wif: str, network: str) -> str:
+    data = base58check_decode(wif)
+    expected_version = b"\x80" if network == "mainnet" else b"\xef"
+    if not data.startswith(expected_version):
+        raise ValueError("WIF network byte does not match selected network")
+    payload = data[1:]
+    if len(payload) == 33 and payload[-1] == 1:
+        payload = payload[:-1]
+    if len(payload) != 32:
+        raise ValueError("WIF does not contain a 32-byte private key")
+    return payload.hex()
+
+
+def private_key_hex_from_nsec(nsec: str) -> str:
+    hrp, data = bech32_decode(nsec)
+    if hrp != "nsec":
+        raise ValueError("Nostr private key must start with nsec")
+    decoded = bytes(convert_bits_values(data, 5, 8, False))
+    if len(decoded) != 32:
+        raise ValueError("nsec does not contain a 32-byte private key")
+    return decoded.hex()
 
 
 def taproot_output_key(private_key: bytes) -> bytes:
@@ -246,6 +299,22 @@ def bech32_encode(hrp: str, data: List[int], spec: str) -> str:
     return hrp + "1" + "".join(BECH32_ALPHABET[value] for value in combined)
 
 
+def bech32_decode(value: str) -> tuple[str, List[int]]:
+    if value.lower() != value and value.upper() != value:
+        raise ValueError("Bech32 cannot mix uppercase and lowercase")
+    value = value.lower()
+    separator = value.rfind("1")
+    if separator < 1 or separator + 7 > len(value):
+        raise ValueError("Invalid Bech32 separator")
+    hrp = value[:separator]
+    data = [BECH32_ALPHABET.find(char) for char in value[separator + 1 :]]
+    if any(part < 0 for part in data):
+        raise ValueError("Invalid Bech32 character")
+    if bech32_polymod(bech32_hrp_expand(hrp) + data) != 1:
+        raise ValueError("Bech32 checksum mismatch")
+    return hrp, data[:-6]
+
+
 def bech32_create_checksum(hrp: str, data: List[int], spec: str) -> List[int]:
     constant = 1 if spec == "bech32" else 0x2BC830A3
     values = bech32_hrp_expand(hrp) + data
@@ -270,6 +339,10 @@ def bech32_polymod(values: Iterable[int]) -> int:
 
 
 def convert_bits(data: bytes, from_bits: int, to_bits: int, pad: bool) -> List[int]:
+    return convert_bits_values(data, from_bits, to_bits, pad)
+
+
+def convert_bits_values(data: Iterable[int], from_bits: int, to_bits: int, pad: bool) -> List[int]:
     accumulator = 0
     bits = 0
     result = []

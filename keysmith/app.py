@@ -4,6 +4,7 @@ import webbrowser
 
 from flask import Flask, jsonify, request, send_from_directory
 
+from keysmith.addressing import derive_from_secret
 from keysmith.search import SearchSession
 from keysmith.validation import (
     BASE58_GUIDE,
@@ -65,6 +66,20 @@ def create_app(session: SearchSession | None = None) -> Flask:
     def status():
         return jsonify(search_session.snapshot())
 
+    @app.post("/api/verify-secret")
+    def verify_secret():
+        payload = request.get_json(silent=True) or {}
+        try:
+            result = derive_from_secret(
+                str(payload.get("secret", "")),
+                str(payload.get("target", "bitcoin")),
+                str(payload.get("network", "mainnet")),
+                str(payload.get("address_type", "p2pkh")),
+            )
+        except Exception:
+            return jsonify({"valid": False, "message": "Could not verify that secret for the selected format."}), 400
+        return jsonify({"valid": True, **result_to_public_dict(result)})
+
     return app
 
 
@@ -79,6 +94,16 @@ def parse_config(payload: dict) -> SearchConfig:
         workers=int(payload.get("workers", 1)),
         target=target,
     )
+
+
+def result_to_public_dict(result) -> dict:
+    return {
+        "address": result.address,
+        "network": result.network,
+        "address_type": result.address_type,
+        "public_key_hex": result.public_key_hex,
+        "x_only_public_key_hex": result.x_only_public_key_hex,
+    }
 
 
 def main() -> None:
