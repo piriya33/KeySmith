@@ -1,10 +1,12 @@
 # Keysmith
 
-Keysmith is a local educational vanity key and address generator. It runs on your Mac, opens a browser UI on `localhost`, and generates keys locally for learning purposes.
+Keysmith is a local educational vanity key and address generator. It runs on your computer, opens a browser UI on `localhost`, and generates keys locally for learning purposes.
 
 Keysmith currently supports Bitcoin vanity addresses and Nostr `npub` public keys. It is not a production wallet or identity manager. Private keys are sensitive. Do not use keys from an educational tool to store meaningful funds or important identities.
 
 ## Setup
+
+macOS/Linux:
 
 ```bash
 python3 -m venv .venv
@@ -13,10 +15,28 @@ python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
+Windows PowerShell:
+
+```powershell
+py -3 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
 ## Run
+
+macOS/Linux:
 
 ```bash
 source .venv/bin/activate
+python -m keysmith.app
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 python -m keysmith.app
 ```
 
@@ -24,10 +44,21 @@ Then open the printed localhost URL in your browser.
 
 On macOS, you can also double-click `run_keysmith.command`. The first run may ask Terminal for permission and install dependencies into `.venv`.
 
+On Windows, you can double-click `run_keysmith.bat`. The first run creates `.venv`, installs dependencies, and starts Keysmith.
+
 ## Test
+
+macOS/Linux:
 
 ```bash
 source .venv/bin/activate
+python -m pytest -v
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
 python -m pytest -v
 ```
 
