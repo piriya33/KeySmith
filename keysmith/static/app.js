@@ -43,6 +43,17 @@ let lastValidation = null;
 let options = null;
 let lastResult = null;
 
+const DEFAULT_PATTERNS = {
+  "bitcoin:mainnet:p2pkh": "1A",
+  "bitcoin:mainnet:p2wpkh": "bc1q",
+  "bitcoin:mainnet:p2tr": "bc1p",
+  "bitcoin:testnet:p2pkh": "mA",
+  "bitcoin:testnet:p2wpkh": "tb1q",
+  "bitcoin:testnet:p2tr": "tb1p",
+  "nostr:nostr:npub": "npub1",
+};
+const DEFAULT_PATTERN_VALUES = new Set(Object.values(DEFAULT_PATTERNS));
+
 function configPayload() {
   const target = targetInput.value;
   return {
@@ -54,6 +65,24 @@ function configPayload() {
     case_sensitive: caseSensitiveInput.checked,
     workers: Number(workersInput.value || 1),
   };
+}
+
+function selectedPatternKey() {
+  const target = targetInput.value;
+  const network = target === "nostr" ? "nostr" : networkInput.value;
+  const addressType = target === "nostr" ? "npub" : addressTypeInput.value;
+  return `${target}:${network}:${addressType}`;
+}
+
+function updateDefaultPattern(force = false) {
+  const nextPattern = DEFAULT_PATTERNS[selectedPatternKey()];
+  if (!nextPattern) {
+    return;
+  }
+  patternInput.placeholder = nextPattern;
+  if (force || DEFAULT_PATTERN_VALUES.has(patternInput.value)) {
+    patternInput.value = nextPattern;
+  }
 }
 
 async function loadOptions() {
@@ -108,26 +137,32 @@ function renderValidation(data) {
 
 function renderTargetControls() {
   const isNostr = targetInput.value === "nostr";
+  const previousType = addressTypeInput.value;
   networkRow.hidden = isNostr;
   addressTypeLabel.textContent = isNostr ? "Key type" : "Address type";
   addressTypeInput.innerHTML = "";
 
-  const values = isNostr ? [["npub", "Nostr npub"]] : [["p2pkh", "P2PKH"], ["p2wpkh", "P2WPKH"], ["p2tr", "P2TR"]];
+  const values = isNostr
+    ? [["npub", "Nostr npub"]]
+    : [
+        ["p2pkh", "P2PKH (Legacy Bitcoin Address)"],
+        ["p2wpkh", "P2WPKH (Segwit Address)"],
+        ["p2tr", "P2TR (Taproot Address)"],
+      ];
   values.forEach(([value, label]) => {
     const option = document.createElement("option");
     option.value = value;
     option.textContent = label;
     addressTypeInput.appendChild(option);
   });
+  if (values.some(([value]) => value === previousType)) {
+    addressTypeInput.value = previousType;
+  }
 
   caseSensitiveInput.checked = !isNostr;
   caseSensitiveInput.disabled = isNostr;
   caseSensitiveCopy.textContent = isNostr ? "Nostr npub matching is lowercase Bech32" : "Case-sensitive matching for Base58";
-  if (isNostr && patternInput.value === "1A") {
-    patternInput.value = "npub1";
-  } else if (!isNostr && patternInput.value === "npub1") {
-    patternInput.value = "1A";
-  }
+  updateDefaultPattern();
 }
 
 function renderSnapshot(snapshot) {
@@ -331,6 +366,8 @@ function renderVerification(data) {
   input.addEventListener("input", () => {
     if (input === targetInput) {
       renderTargetControls();
+    } else if (input === networkInput || input === addressTypeInput) {
+      updateDefaultPattern();
     }
     lastValidation = null;
     validate().catch(() => {});
@@ -341,5 +378,6 @@ loadOptions()
   .catch(() => {})
   .finally(() => {
     renderTargetControls();
+    updateDefaultPattern(true);
     validate().catch(() => {});
   });
