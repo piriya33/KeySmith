@@ -94,3 +94,15 @@ def test_derive_from_nsec_verifies_nostr_backup():
 
     assert derived.address == original.address
     assert derived.nsec == original.nsec
+
+
+def test_derive_from_raw_hex_verifies_bitcoin_and_nostr_backups():
+    private_key_hex = private_key_hex_from_int(1)
+    bitcoin = create_address_result(private_key_hex, "mainnet", "p2tr")
+    nostr = create_nostr_result(private_key_hex)
+
+    derived_bitcoin = derive_from_secret(private_key_hex, "bitcoin", "mainnet", "p2tr")
+    derived_nostr = derive_from_secret(private_key_hex, "nostr", "nostr", "npub")
+
+    assert derived_bitcoin.address == bitcoin.address
+    assert derived_nostr.address == nostr.address

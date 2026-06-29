@@ -27,6 +27,10 @@ const expectedTimeEl = document.querySelector("#expected-time");
 const resultPanel = document.querySelector("#result-panel");
 const resultGrid = document.querySelector("#result-grid");
 const resultWarning = document.querySelector("#result-warning");
+const paperButton = document.querySelector("#paper-button");
+const paperPanel = document.querySelector("#paper-panel");
+const paperGrid = document.querySelector("#paper-grid");
+const printButton = document.querySelector("#print-button");
 const startButton = document.querySelector("#start-button");
 const stopButton = document.querySelector("#stop-button");
 const verifySecretInput = document.querySelector("#verify-secret");
@@ -37,6 +41,7 @@ const verifyResult = document.querySelector("#verify-result");
 let pollTimer = null;
 let lastValidation = null;
 let options = null;
+let lastResult = null;
 
 function configPayload() {
   const target = targetInput.value;
@@ -159,6 +164,7 @@ function renderSnapshot(snapshot) {
 
 function renderResult(result) {
   resultPanel.hidden = false;
+  lastResult = result;
   const isNostr = result.address_type === "npub";
   resultWarning.textContent = isNostr
     ? "The nsec private key can control a Nostr identity. Use this result for education only."
@@ -185,6 +191,28 @@ function renderResult(result) {
     copy.addEventListener("click", () => navigator.clipboard.writeText(value));
     row.append(labelEl, valueEl, copy);
     resultGrid.appendChild(row);
+  });
+  renderPaperView(result);
+}
+
+function renderPaperView(result) {
+  const isNostr = result.address_type === "npub";
+  const rows = [
+    [isNostr ? "Nostr public key (npub)" : "Public address", result.address],
+    [isNostr ? "Private key (nsec)" : "Private key (WIF)", result.nsec || result.wif],
+    ["Raw private key hex", result.private_key_hex],
+    ["Format", isNostr ? "Nostr npub" : `${result.network} ${result.address_type.toUpperCase()}`],
+  ].filter(([, value]) => value);
+  paperGrid.innerHTML = "";
+  rows.forEach(([label, value]) => {
+    const block = document.createElement("div");
+    block.className = "paper-item";
+    const labelEl = document.createElement("strong");
+    labelEl.textContent = label;
+    const valueEl = document.createElement("code");
+    valueEl.textContent = value;
+    block.append(labelEl, valueEl);
+    paperGrid.appendChild(block);
   });
 }
 
@@ -244,6 +272,19 @@ form.addEventListener("submit", async (event) => {
 
 stopButton.addEventListener("click", async () => {
   renderSnapshot(await postJson("/api/stop"));
+});
+
+paperButton.addEventListener("click", () => {
+  if (lastResult) {
+    renderPaperView(lastResult);
+    paperPanel.hidden = false;
+    paperPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
+
+printButton.addEventListener("click", () => {
+  paperPanel.hidden = false;
+  window.print();
 });
 
 verifyButton.addEventListener("click", async () => {

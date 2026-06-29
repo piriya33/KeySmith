@@ -119,15 +119,35 @@
           <p class="warning" id="result-warning">Private keys can spend funds sent to the address. Use this result for education only.</p>
         </div>
         <div class="result-grid" id="result-grid"></div>
+        <div class="actions">
+          <button id="paper-button" type="button">Prepare Paper View</button>
+        </div>
+      </section>
+
+      <section class="panel paper-panel" id="paper-panel" hidden>
+        <div class="paper-header">
+          <div>
+            <p class="eyebrow">Paper Backup</p>
+            <h2>Keysmith Backup Sheet</h2>
+          </div>
+          <button id="print-button" type="button">Print</button>
+        </div>
+        <p class="warning">Print only on an offline printer with no storage or networking. Verify the secret by re-deriving the public value before funding or relying on it.</p>
+        <div class="paper-grid" id="paper-grid"></div>
+        <ol class="paper-checks">
+          <li>I verified the public value from the written secret.</li>
+          <li>I made a second copy and stored it separately.</li>
+          <li>I wiped the machine/storage after use.</li>
+        </ol>
       </section>
 
       <section class="workspace lower">
         <section class="panel">
-          <h2>Offline Checklist</h2>
+          <h2>Paper Backup Checklist</h2>
           <ul class="checklist">
             <li>Use a clean offline machine and verify the app before generating keys.</li>
             <li>Write secrets by hand or use an offline printer with no storage or networking.</li>
-            <li>Verify the written WIF or nsec below before deleting anything.</li>
+            <li>Verify the written WIF, nsec, or raw private key hex below before deleting anything.</li>
             <li>Store duplicate copies separately; paper can be lost, damaged, or misread.</li>
             <li>Wipe the machine/storage properly. Deleting the app does not erase memory, logs, swap, screenshots, or backups.</li>
           </ul>
@@ -135,10 +155,10 @@
 
         <section class="panel verifier">
           <h2>Verify Backup</h2>
-          <p class="safety">Paste a WIF or nsec while offline to derive the public address or npub and compare it with your paper backup.</p>
+          <p class="safety">Paste a WIF, nsec, or raw private key hex while offline to derive the public address or npub and compare it with your paper backup.</p>
           <div class="field-row">
             <label for="verify-secret">Secret to verify</label>
-            <input id="verify-secret" autocomplete="off" placeholder="WIF or nsec1...">
+            <input id="verify-secret" autocomplete="off" placeholder="WIF, nsec1..., or 64-char hex">
           </div>
           <button id="verify-button" type="button">Verify</button>
           <p class="message" id="verify-message"></p>

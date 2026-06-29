@@ -254,6 +254,20 @@ ol {
   margin-top: 18px;
 }
 
+.paper-panel {
+  margin-top: 18px;
+}
+
+.paper-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
 .warning {
   color: var(--bad-ink);
 }
@@ -261,6 +275,28 @@ ol {
 .result-grid {
   display: grid;
   gap: 10px;
+}
+
+.paper-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.paper-item {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.paper-item code {
+  display: block;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+}
+
+.paper-checks {
+  margin-top: 16px;
 }
 
 .checklist {
@@ -299,5 +335,31 @@ ol {
 
   .result-item {
     grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #paper-panel,
+  #paper-panel * {
+    visibility: visible;
+  }
+
+  #paper-panel {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+  }
+
+  #print-button {
+    display: none;
   }
 }

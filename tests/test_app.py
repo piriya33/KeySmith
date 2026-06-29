@@ -125,6 +125,10 @@ def test_index_serves_keysmith_ui():
 
     assert response.status_code == 200
     assert b"Keysmith" in response.data
+    assert b"Paper Backup" in response.data
+    assert b"raw private key hex" in response.data
+    assert b"Prepare Paper View" in response.data
+    assert b"Keysmith Backup Sheet" in response.data
 
 
 def test_verify_secret_derives_bitcoin_address():
@@ -160,3 +164,20 @@ def test_verify_secret_rejects_invalid_secret():
 
     assert response.status_code == 400
     assert "Could not verify" in response.get_json()["message"]
+
+
+def test_verify_secret_accepts_raw_private_key_hex():
+    client = client_with_fake_search()
+
+    response = client.post(
+        "/api/verify-secret",
+        json={
+            "secret": private_key_hex_from_int(1),
+            "target": "nostr",
+            "network": "nostr",
+            "address_type": "npub",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["address"].startswith("npub1")

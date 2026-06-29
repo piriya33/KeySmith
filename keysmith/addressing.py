@@ -232,11 +232,27 @@ def nostr_bech32_from_hex(hrp: str, value_hex: str) -> str:
 
 
 def derive_from_secret(secret: str, target: str, network: str, address_type: str) -> AddressResult:
+    normalized = secret.strip()
+    if is_private_key_hex(normalized):
+        private_key_hex = normalized.lower()
+        if target == "nostr":
+            return create_nostr_result(private_key_hex)
+        return create_address_result(private_key_hex, network, address_type)
     if target == "nostr":
-        private_key_hex = private_key_hex_from_nsec(secret)
+        private_key_hex = private_key_hex_from_nsec(normalized)
         return create_nostr_result(private_key_hex)
-    private_key_hex = private_key_hex_from_wif(secret, network)
+    private_key_hex = private_key_hex_from_wif(normalized, network)
     return create_address_result(private_key_hex, network, address_type)
+
+
+def is_private_key_hex(value: str) -> bool:
+    if len(value) != 64:
+        return False
+    try:
+        key_int = int(value, 16)
+    except ValueError:
+        return False
+    return 1 <= key_int < SECP256K1_ORDER
 
 
 def private_key_hex_from_wif(wif: str, network: str) -> str:
