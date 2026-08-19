@@ -31,6 +31,14 @@ def create_app(session: SearchSession | None = None) -> Flask:
     def index():
         return send_from_directory(app.static_folder, "index.html")
 
+    @app.get("/styles.css")
+    def styles():
+        return send_from_directory(app.static_folder, "styles.css")
+
+    @app.get("/app.js")
+    def script():
+        return send_from_directory(app.static_folder, "app.js")
+
     @app.get("/api/options")
     def options():
         return jsonify(

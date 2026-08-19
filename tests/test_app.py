@@ -135,6 +135,21 @@ def test_index_serves_keysmith_ui():
     assert b"Probability Field" in response.data
     assert b"Search Space" in response.data
     assert b"Prefix + suffix" in response.data
+    assert b'href="styles.css"' in response.data
+    assert b'src="app.js"' in response.data
+
+
+def test_static_asset_aliases_support_server_root():
+    client = client_with_fake_search()
+
+    css_response = client.get("/styles.css")
+    js_response = client.get("/app.js")
+
+    assert css_response.status_code == 200
+    assert css_response.mimetype == "text/css"
+    assert js_response.status_code == 200
+    assert js_response.mimetype in {"application/javascript", "text/javascript"}
+    assert b"const form" in js_response.data
 
 
 def test_verify_secret_derives_bitcoin_address():
