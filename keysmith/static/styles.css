@@ -173,6 +173,7 @@ select:focus {
 }
 
 .validation-preview {
+  display: none;
   min-height: 30px;
   border-left: 3px solid var(--line);
   border-radius: 0 6px 6px 0;
@@ -183,6 +184,10 @@ select:focus {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   overflow-wrap: anywhere;
   transition: border-color 160ms ease, background 160ms ease;
+}
+
+.validation-preview.has-error {
+  display: block;
 }
 
 .validation-preview.has-value {
@@ -584,7 +589,7 @@ ol {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 860px) {
+@media (max-width: 980px) {
   .mast,
   .workspace,
   .workspace.lower,
