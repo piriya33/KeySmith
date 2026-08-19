@@ -18,6 +18,14 @@
 
       <section class="workspace">
         <form id="search-form" class="panel controls">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Forge Pattern</p>
+              <h2>Search Controls</h2>
+            </div>
+            <span class="local-badge">Local only</span>
+          </div>
+
           <div class="field-row">
             <label for="target">Format</label>
             <select id="target" name="target">
@@ -51,6 +59,7 @@
               <option value="contains">Anywhere</option>
               <option value="prefix_suffix">Prefix + suffix</option>
             </select>
+            <p class="hint" id="match-hint">Match the beginning of the generated public value.</p>
           </div>
 
           <div class="field-row">
@@ -84,11 +93,18 @@
 
           <div class="actions">
             <button id="start-button" type="submit">Start</button>
-            <button id="stop-button" type="button" class="danger">Stop</button>
+            <button id="stop-button" type="button" class="danger" disabled>Stop</button>
           </div>
         </form>
 
         <section class="panel telemetry">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Observe Search</p>
+              <h2>Live Status</h2>
+            </div>
+          </div>
+
           <div class="search-viz" id="search-viz" aria-label="Search probability visualization">
             <div class="viz-header">
               <div>

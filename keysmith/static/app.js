@@ -5,6 +5,7 @@ const networkRow = document.querySelector("#network-row");
 const addressTypeInput = document.querySelector("#address-type");
 const addressTypeLabel = document.querySelector("#address-type-label");
 const matchModeInput = document.querySelector("#match-mode");
+const matchHint = document.querySelector("#match-hint");
 const patternLabel = document.querySelector("#pattern-label");
 const patternInput = document.querySelector("#pattern");
 const suffixPatternRow = document.querySelector("#suffix-pattern-row");
@@ -63,6 +64,12 @@ const DEFAULT_PATTERNS = {
   "nostr:nostr:npub": "npub1",
 };
 const DEFAULT_PATTERN_VALUES = new Set(Object.values(DEFAULT_PATTERNS));
+const MATCH_HINTS = {
+  prefix: "Match the beginning of the generated public value.",
+  suffix: "Match the ending characters. Format prefixes are not part of this search.",
+  contains: "Match the pattern anywhere in the generated public value.",
+  prefix_suffix: "Match both ends, like address poisoning examples that imitate the front and back.",
+};
 
 function configPayload() {
   const target = targetInput.value;
@@ -95,6 +102,7 @@ function updatePatternFields(force = false) {
   suffixPatternRow.hidden = !combinedMode;
   suffixPreview.hidden = !combinedMode;
   patternLabel.textContent = combinedMode ? "Prefix" : "Pattern";
+  matchHint.textContent = MATCH_HINTS[matchModeInput.value] || MATCH_HINTS.prefix;
 
   if (prefixMode || combinedMode) {
     patternInput.placeholder = nextPattern;
@@ -156,6 +164,8 @@ function renderValidation(data) {
 
 function renderPatternPreview(container, pattern, invalid, guide) {
   container.innerHTML = "";
+  container.classList.toggle("has-value", Boolean(pattern));
+  container.classList.toggle("has-error", invalid.size > 0);
   for (let index = 0; index < pattern.length; index += 1) {
     const span = document.createElement("span");
     span.textContent = pattern[index];
@@ -202,6 +212,7 @@ function renderTargetControls() {
 
 function renderSnapshot(snapshot) {
   statusEl.textContent = snapshot.status;
+  statusEl.dataset.status = snapshot.status;
   renderSearchVisualization(snapshot);
   attemptsEl.textContent = Number(snapshot.attempts || 0).toLocaleString();
   rateEl.textContent = Math.round(snapshot.attempts_per_second || 0).toLocaleString();
@@ -230,6 +241,9 @@ function renderSnapshot(snapshot) {
   if (["found", "stopped", "idle", "error"].includes(snapshot.status)) {
     stopPolling();
     startButton.disabled = false;
+    stopButton.disabled = true;
+  } else {
+    stopButton.disabled = false;
   }
 }
 
@@ -457,12 +471,14 @@ form.addEventListener("submit", async (event) => {
     resultPanel.hidden = true;
     resultGrid.innerHTML = "";
     startButton.disabled = true;
+    stopButton.disabled = false;
     renderSnapshot(await postJson("/api/start", configPayload()));
     startPolling();
   } catch (error) {
     validationMessage.textContent = error.message;
     validationMessage.style.color = "#b42318";
     startButton.disabled = false;
+    stopButton.disabled = true;
   }
 });
 
