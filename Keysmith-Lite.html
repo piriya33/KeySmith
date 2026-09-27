@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Keysmith Lite</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #edf4f2;
+      --panel: #ffffff;
+      --soft: #f6faf9;
+      --ink: #17212b;
+      --muted: #586975;
+      --line: #d4dfdc;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --accent-soft: #e3f3f0;
+      --danger: #b42318;
+      --danger-soft: #fee9e7;
+      --gold: #9a6700;
+      --shadow: 0 18px 44px rgba(25, 43, 48, .08);
+      --radius: 8px;
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { min-width: 320px; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, rgba(255,255,255,.78), transparent 280px), var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    button, input, select { font: inherit; }
+    button, select, input[type="checkbox"] { cursor: pointer; }
+    .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 24px 0 48px; }
+    .mast { display: grid; grid-template-columns: 1fr minmax(280px, 440px); gap: 24px; align-items: end; padding: 8px 0 24px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 0; font-size: clamp(2rem, 5vw, 3.2rem); letter-spacing: 0; }
+    h2 { margin-bottom: 0; font-size: 1.05rem; letter-spacing: 0; }
+    h3 { margin-bottom: 8px; font-size: .92rem; letter-spacing: 0; }
+    .eyebrow { margin: 0 0 5px; color: var(--accent-dark); font-size: .78rem; font-weight: 760; text-transform: uppercase; }
+    .safety, .hint, .message, .fine-print { color: var(--muted); }
+    .safety, .fine-print { margin-bottom: 0; }
+    .workspace { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 18px; align-items: start; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+    .panel-heading { display: flex; justify-content: space-between; gap: 16px; align-items: start; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+    .badge { flex: 0 0 auto; padding: 5px 9px; border: 1px solid rgba(15,118,110,.22); border-radius: 999px; background: var(--accent-soft); color: var(--accent-dark); font-size: .76rem; font-weight: 760; }
+    .controls { display: grid; gap: 14px; }
+    .field { display: grid; gap: 6px; }
+    .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label, dt, .metric span, .status-line span { color: var(--muted); font-size: .84rem; font-weight: 680; }
+    input, select {
+      width: 100%; min-height: 44px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px;
+      background: #fff; color: var(--ink); transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+    input:focus, select:focus { border-color: var(--accent); outline: 3px solid rgba(15,118,110,.16); }
+    .hint, .message { margin: 0; font-size: .82rem; }
+    .preview { min-height: 28px; padding: 5px 9px; border-left: 3px solid var(--line); background: var(--soft); color: var(--muted); font: .84rem ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    .preview.valid { border-color: rgba(15,118,110,.48); color: var(--ink); }
+    .preview.invalid { border-color: var(--danger); background: #fff7f6; }
+    .bad-char { display: inline-block; padding: 0 2px; border-radius: 3px; background: var(--danger-soft); color: var(--danger); text-decoration: underline; font-weight: 800; }
+    .guide { display: grid; gap: 5px; padding: 10px 12px; border-left: 3px solid var(--accent); background: linear-gradient(90deg, rgba(15,118,110,.06), transparent); }
+    .guide strong { font-size: .82rem; }
+    .guide code { overflow-wrap: anywhere; font-size: .78rem; }
+    .check { display: flex; gap: 10px; align-items: center; min-height: 44px; }
+    .check input { width: 18px; height: 18px; }
+    .actions { display: flex; gap: 10px; }
+    button { min-height: 44px; padding: 10px 15px; border: 0; border-radius: 6px; background: var(--accent); color: #fff; font-weight: 750; transition: background 160ms ease, opacity 160ms ease; }
+    button:hover { background: var(--accent-dark); }
+    button:focus-visible { outline: 3px solid rgba(15,118,110,.25); outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    button.danger { background: var(--danger); }
+    button.secondary { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+    button.secondary:hover { background: var(--soft); }
+    .telemetry { display: grid; gap: 16px; }
+    .viz-header { display: flex; justify-content: space-between; gap: 16px; align-items: end; }
+    .viz-stat { color: var(--muted); font-size: .84rem; font-variant-numeric: tabular-nums; text-align: right; }
+    .pond { position: relative; min-height: 250px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(180deg, rgba(255,255,255,.52), transparent), radial-gradient(circle at 50% 48%, #fff 0, #f5f9f8 40%, #e6efed 100%); }
+    .target-ring { position: absolute; left: 50%; top: 50%; width: 104px; height: 104px; border: 2px solid rgba(15,118,110,.52); border-radius: 50%; box-shadow: 0 0 0 14px rgba(15,118,110,.05), 0 0 42px rgba(15,118,110,.14); transform: translate(-50%,-50%); transition: width 260ms ease, height 260ms ease; }
+    .ring-label { position: absolute; left: 50%; top: calc(50% + 72px); width: min(82%, 380px); transform: translateX(-50%); color: var(--muted); font-size: .76rem; text-align: center; }
+    .drop { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: rgba(70,145,136,.75); pointer-events: none; transform: translate(-50%,-50%); animation: fade 2.8s ease-out forwards; }
+    .drop::after { content: ""; position: absolute; inset: -10px; border: 1px solid rgba(70,145,136,.36); border-radius: 50%; animation: ripple 2.8s ease-out forwards; }
+    .drop.hit { width: 14px; height: 14px; background: var(--danger); box-shadow: 0 0 0 8px rgba(180,35,24,.14); animation-duration: 4s; }
+    .drop.hit::after { inset: -22px; border-color: rgba(180,35,24,.58); animation-duration: 4s; }
+    @keyframes fade { from { opacity: .85; transform: translate(-50%,-50%) scale(.6); } to { opacity: 0; transform: translate(-50%,-50%) scale(1.5); } }
+    @keyframes ripple { to { opacity: 0; transform: scale(2.8); } }
+    .status-line { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .status-pill { padding: 5px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); font-size: .84rem; }
+    .status-pill.running { background: var(--accent-soft); color: var(--accent-dark); }
+    .status-pill.found { background: #fef3c7; color: var(--gold); }
+    .status-pill.error { background: var(--danger-soft); color: var(--danger); }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
+    .metric, .lesson-grid div { min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); }
+    .metric strong { display: block; margin-top: 4px; overflow-wrap: anywhere; font-size: .95rem; font-variant-numeric: tabular-nums; }
+    .lesson { padding-top: 14px; border-top: 1px solid var(--line); }
+    .lesson-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin-top: 10px; }
+    .lesson-grid strong { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+    .steps { margin: 8px 0 0; padding-left: 20px; color: var(--muted); font-size: .88rem; }
+    .result { margin-top: 18px; }
+    .warning { padding: 10px 12px; border-left: 3px solid var(--danger); background: #fff7f6; color: #8f2018; }
+    .result-grid { display: grid; gap: 10px; }
+    .result-row { display: grid; grid-template-columns: 150px minmax(0,1fr) auto; gap: 10px; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); }
+    .result-row code { overflow-wrap: anywhere; font-size: .82rem; }
+    .result-row button { min-width: 72px; }
+    .about { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+    .about ul { margin: 10px 0 0; padding-left: 20px; color: var(--muted); }
+    .file-note { display: flex; gap: 10px; align-items: flex-start; }
+    .file-mark { flex: 0 0 auto; width: 28px; height: 34px; border: 2px solid var(--accent); border-radius: 3px; position: relative; }
+    .file-mark::after { content: ""; position: absolute; right: -2px; top: -2px; width: 9px; height: 9px; border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); background: var(--panel); }
+    @media (max-width: 900px) {
+      .mast, .workspace, .about { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 20px, 1180px); padding-top: 14px; }
+      .field-pair, .lesson-grid, .metrics { grid-template-columns: 1fr; }
+      .viz-header { display: grid; align-items: start; }
+      .viz-stat { text-align: left; }
+      .result-row { grid-template-columns: 1fr; }
+      .pond { min-height: 220px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .drop { display: none; }
+    }
+    @media print {
+      body { background: #fff; }
+      .mast, .workspace, .about, .result .actions { display: none !important; }
+      .result { margin: 0; border: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="mast">
+      <div>
+        <p class="eyebrow">A one-file cryptography classroom</p>
+        <h1>Keysmith Lite</h1>
+      </div>
+      <p class="safety">Open this file in a modern browser. Everything runs on this computer, without a server or internet connection. Use generated keys only for learning.</p>
+    </header>
+
+    <div class="workspace">
+      <form class="panel controls" id="search-form">
+        <div class="panel-heading">
+          <div><p class="eyebrow">Choose an experiment</p><h2>Search Controls</h2></div>
+          <span class="badge">Offline ready</span>
+        </div>
+
+        <div class="field-pair">
+          <div class="field">
+            <label for="target">Format</label>
+            <select id="target"><option value="bitcoin">Bitcoin address</option><option value="nostr">Nostr public key</option></select>
+          </div>
+          <div class="field" id="network-field">
+            <label for="network">Network</label>
+            <select id="network"><option value="mainnet">Bitcoin mainnet</option><option value="testnet">Bitcoin testnet</option></select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="address-type">Address type</label>
+          <select id="address-type">
+            <option value="p2pkh">P2PKH (Legacy Bitcoin Address)</option>
+            <option value="p2wpkh">P2WPKH (Segwit Address)</option>
+            <option value="p2tr">P2TR (Taproot Address)</option>
+          </select>
+          <p class="hint" id="type-hint">Legacy format beginning with 1 on mainnet.</p>
+        </div>
+
+        <div class="field">
+          <label for="match-mode">Where should it match?</label>
+          <select id="match-mode"><option value="prefix">Prefix</option><option value="suffix">Suffix</option><option value="contains">Anywhere</option><option value="prefix_suffix">Prefix + suffix</option></select>
+          <p class="hint" id="mode-hint">Match the beginning of the generated public value.</p>
+        </div>
+
+        <div class="field">
+          <label for="pattern" id="pattern-label">Pattern</label>
+          <input id="pattern" value="1A" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="preview" id="pattern-preview" aria-live="polite"></div>
+
+        <div class="field" id="suffix-field" hidden>
+          <label for="suffix-pattern">Suffix</label>
+          <input id="suffix-pattern" autocomplete="off" spellcheck="false" placeholder="ending text">
+        </div>
+        <div class="preview" id="suffix-preview" hidden aria-live="polite"></div>
+        <p class="message" id="validation-message" aria-live="polite"></p>
+
+        <div class="guide">
+          <strong id="alphabet-name">Base58 alphabet</strong>
+          <code id="alphabet"></code>
+          <p class="hint" id="alphabet-note"></p>
+        </div>
+
+        <label class="check" id="case-row"><input id="case-sensitive" type="checkbox" checked><span>Case-sensitive Base58 matching</span></label>
+
+        <div class="field">
+          <label for="workers">Parallel browser workers</label>
+          <select id="workers"><option value="1">1 worker</option><option value="2" selected>2 workers</option><option value="3">3 workers</option><option value="4">4 workers</option></select>
+          <p class="hint">More workers search faster but use more battery and make the computer warmer.</p>
+        </div>
+
+        <div class="actions">
+          <button id="start" type="submit">Start search</button>
+          <button id="stop" type="button" class="danger" disabled>Stop</button>
+        </div>
+      </form>
+
+      <section class="panel telemetry" aria-labelledby="observe-title">
+        <div class="viz-header">
+          <div><p class="eyebrow">Observe the search</p><h2 id="observe-title">Probability Field</h2></div>
+          <div class="viz-stat" id="viz-stat">sampled 0 / waiting to begin</div>
+        </div>
+        <div class="pond" id="pond" aria-label="Animated visualization of random attempts outside a target ring">
+          <div class="target-ring" id="target-ring"></div>
+          <div class="ring-label" id="ring-label">The target shrinks as the pattern gets longer.</div>
+        </div>
+        <div class="status-line"><span>Status</span><strong class="status-pill" id="status">idle</strong></div>
+        <div class="metrics">
+          <div class="metric"><span>Attempts</span><strong id="attempts">0</strong></div>
+          <div class="metric"><span>Attempts / sec</span><strong id="rate">0</strong></div>
+          <div class="metric"><span>Elapsed</span><strong id="elapsed">0s</strong></div>
+          <div class="metric"><span>Chance so far</span><strong id="chance">0%</strong></div>
+        </div>
+        <div class="lesson">
+          <h2>What the browser is doing</h2>
+          <ol class="steps" id="steps"></ol>
+          <div class="lesson-grid">
+            <div><span class="hint">Built-in prefix</span><strong id="fixed-prefix">1</strong></div>
+            <div><span class="hint">Characters searched</span><strong id="effective-pattern">A</strong></div>
+            <div><span class="hint">Likely wait</span><strong id="estimate">Waiting for speed</strong></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel result" id="result" hidden>
+      <div class="panel-heading"><div><p class="eyebrow">The target was hit</p><h2>Found Match</h2></div><span class="badge">Generated here</span></div>
+      <p class="warning">The private key controls this address or identity. Anyone who sees it can take control. Do not use classroom keys for real funds or an important identity.</p>
+      <div class="result-grid" id="result-grid"></div>
+      <div class="actions" style="margin-top:14px"><button type="button" class="secondary" id="print">Print result</button></div>
+    </section>
+
+    <div class="about">
+      <section class="panel">
+        <div class="file-note"><span class="file-mark" aria-hidden="true"></span><div><h2>One file, no installation</h2><p class="fine-print">Students can receive this HTML file, double-click it, and start experimenting. The cryptography, interface, and lesson are all inside it.</p></div></div>
+      </section>
+      <section class="panel">
+        <h2>Classroom safety</h2>
+        <ul><li>Use short patterns first: every extra character makes the search much harder.</li><li>Close the page to discard unfinished searches and displayed keys.</li><li>This compact teaching version has not been audited as a wallet.</li></ul>
+      </section>
+    </div>
+  </main>
+
+  <script>
+  (() => {
+    "use strict";
+    const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+    const defaults = {
+      "bitcoin:mainnet:p2pkh": "1A", "bitcoin:testnet:p2pkh": "mA",
+      "bitcoin:mainnet:p2wpkh": "bc1q", "bitcoin:testnet:p2wpkh": "tb1q",
+      "bitcoin:mainnet:p2tr": "bc1p", "bitcoin:testnet:p2tr": "tb1p",
+      "nostr:nostr:npub": "npub1"
+    };
+    const typeHints = {
+      p2pkh: "Legacy Bitcoin format. Mainnet addresses begin with 1; testnet usually begins with m or n.",
+      p2wpkh: "Segwit format with lower fees. It begins with bc1q or tb1q.",
+      p2tr: "Taproot format for newer Bitcoin features. It begins with bc1p or tb1p.",
+      npub: "A shareable Nostr public identity beginning with npub1."
+    };
+    const modeHints = {
+      prefix: "Match the beginning of the generated public value.", suffix: "Match the ending characters.",
+      contains: "Match the pattern anywhere in the public value.", prefix_suffix: "Match both ends, useful for demonstrating address-poisoning lookalikes."
+    };
+    const $ = (id) => document.getElementById(id);
+    const els = Object.fromEntries(["search-form","target","network-field","network","address-type","type-hint","match-mode","mode-hint","pattern-label","pattern","pattern-preview","suffix-field","suffix-pattern","suffix-preview","validation-message","alphabet-name","alphabet","alphabet-note","case-row","case-sensitive","workers","start","stop","pond","target-ring","ring-label","viz-stat","status","attempts","rate","elapsed","chance","steps","fixed-prefix","effective-pattern","estimate","result","result-grid","print"].map(id => [id, $(id)]));
+    let workers = [], running = false, attempts = 0, startedAt = 0, timer = 0, vizTimer = 0, expectedAttempts = 0, lastDefaultsKey = "", lastMode = "prefix", bitcoinType = "p2pkh";
+
+    function config() {
+      const target = els.target.value;
+      return { target, network: target === "nostr" ? "nostr" : els.network.value, type: target === "nostr" ? "npub" : els["address-type"].value, mode: els["match-mode"].value, pattern: els.pattern.value, suffix: els["suffix-pattern"].value, caseSensitive: els["case-sensitive"].checked };
+    }
+    function configKey(c = config()) { return `${c.target}:${c.network}:${c.type}`; }
+    function fixedPrefix(c) {
+      if (c.target === "nostr") return "npub1";
+      if (c.type === "p2pkh") return c.network === "mainnet" ? "1" : "m/n";
+      if (c.type === "p2wpkh") return c.network === "mainnet" ? "bc1q" : "tb1q";
+      return c.network === "mainnet" ? "bc1p" : "tb1p";
+    }
+    function actualFixedPrefix(c) { return defaults[configKey(c)].replace(/[A-Z]$/, ""); }
+    function alphabetFor(c) { return c.type === "p2pkh" ? BASE58 : BECH32; }
+    function normalize(value, c) { return c.type === "p2pkh" && c.caseSensitive ? value : value.toLowerCase(); }
+    function effective(c) {
+      let first = c.pattern;
+      const fixed = actualFixedPrefix(c);
+      if (c.type === "p2pkh" && c.network === "testnet" && (c.mode === "prefix" || c.mode === "prefix_suffix") && /^[mn]/i.test(first)) first = first.slice(1);
+      else if ((c.mode === "prefix" || c.mode === "prefix_suffix") && normalize(first, c).startsWith(normalize(fixed, c))) first = first.slice(fixed.length);
+      return c.mode === "prefix_suffix" ? first + c.suffix : first;
+    }
+    function validatePart(value, c) {
+      const allowed = alphabetFor(c);
+      return [...value].map((char, index) => ({char, index, ok: c.type === "p2pkh" ? allowed.includes(char) : allowed.includes(char.toLowerCase()) && char === char.toLowerCase()}));
+    }
+    function validate(c) {
+      const main = validatePart(c.pattern, c), suffix = validatePart(c.suffix, c);
+      let message = "Pattern is ready.";
+      let warning = false;
+      let valid = c.pattern.length > 0 && main.every(x => x.ok);
+      if (c.mode === "prefix_suffix") valid = valid && c.suffix.length > 0 && suffix.every(x => x.ok);
+      if (!c.pattern) message = "Enter a pattern to search for.";
+      else if (c.mode === "prefix_suffix" && !c.suffix) message = "Enter a suffix too.";
+      else if (!valid) message = c.type === "p2pkh" ? "Highlighted characters do not exist in Base58." : "Bech32 uses only the lowercase characters shown below.";
+      if (c.mode === "prefix" || c.mode === "prefix_suffix") {
+        const value = normalize(c.pattern, c);
+        const prefixOkay = c.type !== "p2pkh" ? value.startsWith(actualFixedPrefix(c)) : c.network === "mainnet" ? value.startsWith("1") : /^[mn]/.test(value);
+        if (!prefixOkay) { valid = false; message = `This format must begin with ${fixedPrefix(c)}.`; }
+      }
+      const skew = legacyPrefixSkew(c);
+      if (valid && skew >= 2) { warning = true; message = `Pattern is valid, but this legacy prefix is about ${Math.round(skew).toLocaleString()}× rarer than a uniform Base58 estimate.`; }
+      return {valid, warning, message, main, suffix};
+    }
+    function renderPreview(el, parts, emptyText) {
+      el.textContent = ""; el.className = "preview " + (parts.some(x => !x.ok) ? "invalid" : parts.length ? "valid" : "");
+      if (!parts.length) { el.textContent = emptyText; return; }
+      parts.forEach(part => { const span = document.createElement("span"); span.textContent = part.char; if (!part.ok) { span.className = "bad-char"; span.title = `${part.char} is not allowed`; } el.appendChild(span); });
+    }
+    function base58PrefixIntervalProbability(prefix, low, high, domainSize) {
+      if (!prefix || BASE58.indexOf(prefix[0]) <= 0) return 0;
+      let value = 0n;
+      for (const char of prefix) { const digit = BASE58.indexOf(char); if (digit < 0) return 0; value = value * 58n + BigInt(digit); }
+      let count = 0n;
+      for (let length = prefix.length; length <= 40; length++) {
+        const scale = 58n ** BigInt(length - prefix.length);
+        const intervalLow = value * scale, intervalHigh = (value + 1n) * scale - 1n;
+        const overlapLow = intervalLow > low ? intervalLow : low, overlapHigh = intervalHigh < high ? intervalHigh : high;
+        if (overlapHigh >= overlapLow) count += overlapHigh - overlapLow + 1n;
+      }
+      return Number(count) / Number(domainSize);
+    }
+    function p2pkhPrefixProbability(pattern, network) {
+      if (network === "testnet") {
+        const low = 0x6fn << 192n, high = (0x70n << 192n) - 1n;
+        return base58PrefixIntervalProbability(pattern, low, high, 1n << 192n);
+      }
+      if (!pattern.startsWith("1")) return 0;
+      const rest = pattern.slice(1);
+      let extraZeroBytes = 0;
+      while (rest[extraZeroBytes] === "1") extraZeroBytes++;
+      if (extraZeroBytes === rest.length) return Math.pow(256, -extraZeroBytes);
+      if (extraZeroBytes >= 20) return 0;
+      const prefix = rest.slice(extraZeroBytes);
+      const highBits = 8 * (24 - extraZeroBytes), lowBits = highBits - 8;
+      return base58PrefixIntervalProbability(prefix, 1n << BigInt(lowBits), (1n << BigInt(highBits)) - 1n, 1n << 192n);
+    }
+    function caseVariants(value) {
+      let variants = [""];
+      for (const char of value) {
+        const swapped = char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase();
+        const choices = swapped !== char && BASE58.includes(swapped) ? [char, swapped] : [char];
+        if (variants.length * choices.length > 4096) return null;
+        variants = variants.flatMap(prefix => choices.map(choice => prefix + choice));
+      }
+      return variants;
+    }
+    function p2pkhMatchProbability(pattern, network, caseSensitive) {
+      const variants = caseSensitive ? [pattern] : caseVariants(pattern);
+      if (!variants) return null;
+      return variants.reduce((sum, variant) => sum + p2pkhPrefixProbability(variant, network), 0);
+    }
+    function base58LooseProbability(value, caseSensitive) {
+      let probability = 1;
+      for (const char of value) {
+        const swapped = char === char.toLowerCase() ? char.toUpperCase() : char.toLowerCase();
+        probability *= !caseSensitive && swapped !== char && BASE58.includes(swapped) ? 2 / 58 : 1 / 58;
+      }
+      return probability;
+    }
+    function legacyPrefixSkew(c) {
+      if (c.type !== "p2pkh" || !c.caseSensitive || (c.mode !== "prefix" && c.mode !== "prefix_suffix")) return 1;
+      const probability = p2pkhPrefixProbability(c.pattern, c.network);
+      const searchedLength = Math.max(0, c.pattern.length - 1);
+      return probability > 0 ? (1 / Math.pow(58, searchedLength)) / probability : Infinity;
+    }
+    function estimateSpace(c) {
+      if (c.type === "p2pkh" && (c.mode === "prefix" || c.mode === "prefix_suffix")) {
+        const prefixProbability = p2pkhMatchProbability(c.pattern, c.network, c.caseSensitive);
+        if (prefixProbability !== null && prefixProbability > 0) {
+          const suffixProbability = c.mode === "prefix_suffix" ? base58LooseProbability(c.suffix, c.caseSensitive) : 1;
+          return 1 / (prefixProbability * suffixProbability);
+        }
+      }
+      const count = effective(c).length;
+      if (!count) return 1;
+      const base = c.type === "p2pkh" ? (c.caseSensitive ? 58 : 29) : 32;
+      let space = Math.pow(base, count);
+      if (c.mode === "contains") space /= Math.max(1, 30 - count);
+      return Math.max(1, space);
+    }
+    function renderControls(forceDefault = false) {
+      const isNostr = els.target.value === "nostr";
+      if (isNostr && els["address-type"].value !== "npub") {
+        bitcoinType = els["address-type"].value;
+        els["address-type"].innerHTML = '<option value="npub">Nostr npub (Public Identity)</option>';
+      } else if (!isNostr && els["address-type"].value === "npub") {
+        els["address-type"].innerHTML = '<option value="p2pkh">P2PKH (Legacy Bitcoin Address)</option><option value="p2wpkh">P2WPKH (Segwit Address)</option><option value="p2tr">P2TR (Taproot Address)</option>';
+        els["address-type"].value = bitcoinType;
+      }
+      const c = config(), combined = c.mode === "prefix_suffix";
+      els["network-field"].hidden = isNostr;
+      els["address-type"].disabled = isNostr;
+      els["type-hint"].textContent = typeHints[isNostr ? "npub" : c.type];
+      els["mode-hint"].textContent = modeHints[c.mode];
+      els["suffix-field"].hidden = !combined; els["suffix-preview"].hidden = !combined;
+      els["pattern-label"].textContent = combined ? "Prefix" : "Pattern";
+      els["case-row"].hidden = c.type !== "p2pkh" || isNostr;
+      const key = configKey(config());
+      const oldDefaults = new Set(Object.values(defaults));
+      const modeChanged = c.mode !== lastMode;
+      if (forceDefault || key !== lastDefaultsKey) {
+        els.pattern.value = (c.mode === "prefix" || combined) ? defaults[key] : "";
+        if (combined) els["suffix-pattern"].value = "";
+      } else if (modeChanged) {
+        els.pattern.value = (c.mode === "prefix" || combined) ? defaults[key] : "";
+        if (combined) els["suffix-pattern"].value = "";
+      } else if (oldDefaults.has(els.pattern.value) && c.mode !== "prefix" && !combined) {
+        els.pattern.value = "";
+      }
+      lastDefaultsKey = key; lastMode = c.mode;
+      renderValidation();
+    }
+    function renderValidation() {
+      const c = config(), v = validate(c), allowed = alphabetFor(c);
+      renderPreview(els["pattern-preview"], v.main, "Type a vanity pattern");
+      renderPreview(els["suffix-preview"], v.suffix, "Type an ending pattern");
+      els["validation-message"].textContent = v.message;
+      els["validation-message"].style.color = !v.valid ? "#b42318" : v.warning ? "#9a6700" : "#0f766e";
+      els["alphabet-name"].textContent = c.type === "p2pkh" ? "Base58 alphabet" : "Bech32 alphabet";
+      els.alphabet.textContent = allowed;
+      els["alphabet-note"].textContent = c.type === "p2pkh" ? "Base58 omits 0, O, I, and l. In legacy prefixes, legal characters are not equally likely in every position." : "Bech32 is lowercase and omits visually confusing characters.";
+      expectedAttempts = estimateSpace(c);
+      const searched = effective(c);
+      els["fixed-prefix"].textContent = fixedPrefix(c);
+      els["effective-pattern"].textContent = searched || "None (instant)";
+      const diameter = searched.length >= 8 ? 8 : Math.max(12, 168 - searched.length * 20);
+      els["target-ring"].style.width = `${diameter}px`; els["target-ring"].style.height = `${diameter}px`;
+      els["ring-label"].textContent = searched.length ? `${searched.length} searched ${searched.length === 1 ? "character" : "characters"}; roughly 1 in ${large(expectedAttempts)} attempts` : "Only the format prefix is selected, so any key can match.";
+      els.steps.innerHTML = "";
+      ["Create a random 256-bit private key.", "Multiply it on the secp256k1 curve to find its public key.", `Encode the public key as ${c.target === "nostr" ? "an npub" : c.type.toUpperCase() + " address"}.`, "Compare the requested characters; repeat until they match."].forEach(text => { const li = document.createElement("li"); li.textContent = text; els.steps.appendChild(li); });
+      return v.valid;
+    }
+    function setStatus(value) { els.status.textContent = value; els.status.className = `status-pill ${value}`; }
+    function large(n) { if (!Number.isFinite(n)) return "more than JavaScript can count"; return n < 1e6 ? Math.round(n).toLocaleString() : n.toExponential(2).replace("+", ""); }
+    function duration(s) { if (!Number.isFinite(s)) return "unknown"; if (s < 1) return `${Math.round(s * 1000)}ms`; if (s < 60) return `${s.toFixed(1)}s`; if (s < 3600) return `${Math.floor(s/60)}m ${Math.round(s%60)}s`; return `${Math.floor(s/3600)}h ${Math.round((s%3600)/60)}m`; }
+    function updateStats() {
+      const elapsed = running ? (performance.now() - startedAt) / 1000 : Number(els.elapsed.dataset.value || 0);
+      const rate = elapsed > 0 ? attempts / elapsed : 0;
+      const probability = expectedAttempts > 0 ? 1 - Math.exp(-attempts / expectedAttempts) : 0;
+      els.attempts.textContent = attempts.toLocaleString(); els.rate.textContent = Math.round(rate).toLocaleString(); els.elapsed.textContent = duration(elapsed); els.elapsed.dataset.value = elapsed;
+      els.chance.textContent = `${(probability * 100).toFixed(probability < .01 ? 3 : 2)}%`;
+      els["viz-stat"].textContent = `sampled ${attempts.toLocaleString()} / ~${large(expectedAttempts)} target space`;
+      els.estimate.textContent = rate > 0 ? duration(expectedAttempts / rate) : "Waiting for speed";
+    }
+    function spawnDrop(hit = false) {
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const dot = document.createElement("i"); dot.className = hit ? "drop hit" : "drop";
+      const w = els.pond.clientWidth, h = els.pond.clientHeight, cx = w/2, cy = h/2, ring = els["target-ring"].clientWidth/2 + 12;
+      let x = cx, y = cy;
+      if (hit) { x += (Math.random()-.5) * Math.max(4, ring*.7); y += (Math.random()-.5) * Math.max(4, ring*.7); }
+      else { for (let i=0;i<30;i++) { x=18+Math.random()*(w-36); y=18+Math.random()*(h-36); if (Math.hypot(x-cx,y-cy)>ring) break; } }
+      dot.style.left=`${x}px`; dot.style.top=`${y}px`; els.pond.appendChild(dot); setTimeout(()=>dot.remove(), hit ? 4000 : 2800);
+    }
+    function stopSearch(state = "stopped") {
+      workers.forEach(w => w.terminate()); workers = []; running = false; clearInterval(timer); clearInterval(vizTimer); timer = vizTimer = 0;
+      els.start.disabled = false; els.stop.disabled = true; setStatus(state); updateStats();
+    }
+    function copyText(value, button) {
+      const done = () => { const old=button.textContent; button.textContent="Copied"; setTimeout(()=>button.textContent=old,1200); };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(value).then(done).catch(()=>fallback()); else fallback();
+      function fallback(){ const area=document.createElement("textarea"); area.value=value; area.style.position="fixed"; area.style.opacity="0"; document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove(); done(); }
+    }
+    function showResult(data) {
+      stopSearch("found"); els.pond.querySelectorAll(".drop").forEach(x=>x.remove()); spawnDrop(true);
+      els["result-grid"].innerHTML = "";
+      const rows = [[data.target === "nostr" ? "Nostr public key" : "Address", data.address], [data.target === "nostr" ? "Private key (nsec)" : "Private key (WIF)", data.secret], ["Private key hex", data.privateHex], ["Public key", data.publicHex], ["Taproot output key", data.outputPublicHex]].filter(([, value]) => value);
+      rows.forEach(([label,value]) => { const row=document.createElement("div"); row.className="result-row"; const strong=document.createElement("strong"); strong.textContent=label; const code=document.createElement("code"); code.textContent=value; const button=document.createElement("button"); button.type="button"; button.className="secondary"; button.textContent="Copy"; button.addEventListener("click",()=>copyText(value,button)); row.append(strong,code,button); els["result-grid"].appendChild(row); });
+      els.result.hidden=false; els.result.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+    }
+
+    function workerMain() {
+      const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz", BECH32 = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+      const P=0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn, N=0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+      const G=[0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n,0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n];
+      const mod=(a,m=P)=>{const r=a%m;return r>=0n?r:r+m;};
+      function inv(a,m=P){let [oldR,r]=[mod(a,m),m],[oldS,s]=[1n,0n];while(r){const q=oldR/r;[oldR,r]=[r,oldR-q*r];[oldS,s]=[s,oldS-q*s];}return mod(oldS,m);}
+      function jDouble(q){let [x,y,z]=q;if(y===0n||z===0n)return[0n,1n,0n];const yy=mod(y*y),s=mod(4n*x*yy),m=mod(3n*x*x),nx=mod(m*m-2n*s),ny=mod(m*(s-nx)-8n*yy*yy),nz=mod(2n*y*z);return[nx,ny,nz];}
+      function jAddAffine(q,p){let [x1,y1,z1]=q;if(z1===0n)return[p[0],p[1],1n];const z2=mod(z1*z1),u2=mod(p[0]*z2),s2=mod(p[1]*z1*z2),h=mod(u2-x1),r=mod(s2-y1);if(h===0n)return r===0n?jDouble(q):[0n,1n,0n];const hh=mod(h*h),hhh=mod(h*hh),v=mod(x1*hh),nx=mod(r*r-hhh-2n*v),ny=mod(r*(v-nx)-y1*hhh),nz=mod(z1*h);return[nx,ny,nz];}
+      function scalar(k){let q=[0n,1n,0n];for(let i=255;i>=0;i--){q=jDouble(q);if((k>>BigInt(i))&1n)q=jAddAffine(q,G);}const zi=inv(q[2]),z2=mod(zi*zi);return[mod(q[0]*z2),mod(q[1]*z2*zi)];}
+      function affineBatch(points){const before=[],out=new Array(points.length);let product=1n;for(let i=0;i<points.length;i++){before[i]=product;product=mod(product*points[i][2]);}let inverse=inv(product);for(let i=points.length-1;i>=0;i--){const [x,y,z]=points[i],zi=mod(inverse*before[i]),z2=mod(zi*zi);out[i]=[mod(x*z2),mod(y*z2*zi)];inverse=mod(inverse*z);}return out;}
+      let BASE_TABLE;
+      function buildBaseTable(){const basesJ=[];let base=[G[0],G[1],1n];for(let window=0;window<29;window++){basesJ.push(base);for(let i=0;i<9;i++)base=jDouble(base);}const bases=affineBatch(basesJ),multiples=[],groups=[];for(const point of bases){const group=[null];let value=[0n,1n,0n];for(let digit=1;digit<512;digit++){value=jAddAffine(value,point);group.push(multiples.length);multiples.push(value);}groups.push(group);}const normalized=affineBatch(multiples);BASE_TABLE=groups.map(group=>group.map(index=>index===null?null:normalized[index]));}
+      function scalarBaseJacobian(k){if(!BASE_TABLE)buildBaseTable();let q=[0n,1n,0n];for(let window=0;window<29;window++){const digit=Number((k>>BigInt(window*9))&511n);if(digit)q=jAddAffine(q,BASE_TABLE[window][digit]);}return q;}
+      function scalarBase(k){const q=scalarBaseJacobian(k),zi=inv(q[2]),z2=mod(zi*zi);return[mod(q[0]*z2),mod(q[1]*z2*zi)];}
+      function addPoints(a,b){if(!a)return b;if(!b)return a;if(a[0]===b[0]){if(a[1]!==b[1])return null;const m=mod(3n*a[0]*a[0]*inv(2n*a[1])),x=mod(m*m-2n*a[0]);return[x,mod(m*(a[0]-x)-a[1])];}const m=mod((b[1]-a[1])*inv(b[0]-a[0])),x=mod(m*m-a[0]-b[0]);return[x,mod(m*(a[0]-x)-a[1])];}
+      const bytesToBig=b=>BigInt("0x"+[...b].map(x=>x.toString(16).padStart(2,"0")).join(""));
+      const bigToBytes=(n,len=32)=>{const h=n.toString(16).padStart(len*2,"0");return new Uint8Array(h.match(/../g).map(x=>parseInt(x,16)));};
+      const concat=(...xs)=>{const out=new Uint8Array(xs.reduce((n,x)=>n+x.length,0));let p=0;for(const x of xs){out.set(x,p);p+=x.length;}return out;};
+      const hex=b=>[...b].map(x=>x.toString(16).padStart(2,"0")).join("");
+      const utf8=s=>new TextEncoder().encode(s);
+      function randomKey(){let b,n;do{b=new Uint8Array(32);crypto.getRandomValues(b);n=bytesToBig(b);}while(n===0n||n>=N);return[b,n];}
+      function rotr(x,n){return(x>>>n)|(x<<(32-n));}
+      function sha256(msg){const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];let l=msg.length,bit=l*8,pad=((56-(l+1)%64)+64)%64,b=new Uint8Array(l+1+pad+8);b.set(msg);b[l]=128;new DataView(b.buffer).setUint32(b.length-4,bit>>>0);let h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],w=new Uint32Array(64);for(let o=0;o<b.length;o+=64){for(let i=0;i<16;i++)w[i]=new DataView(b.buffer).getUint32(o+i*4);for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2],s0=rotr(a,7)^rotr(a,18)^(a>>>3),s1=rotr(c,17)^rotr(c,19)^(c>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;}let [a,c,d,e,f,g,j,k]=h;for(let i=0;i<64;i++){const s1=rotr(f,6)^rotr(f,11)^rotr(f,25),ch=(f&g)^(~f&j),t1=(k+s1+ch+K[i]+w[i])>>>0,s0=rotr(a,2)^rotr(a,13)^rotr(a,22),maj=(a&c)^(a&d)^(c&d),t2=(s0+maj)>>>0;[a,c,d,e,f,g,j,k]=[(t1+t2)>>>0,a,c,d,(e+t1)>>>0,f,g,j];}h=h.map((x,i)=>(x+[a,c,d,e,f,g,j,k][i])>>>0);}const out=new Uint8Array(32),v=new DataView(out.buffer);h.forEach((x,i)=>v.setUint32(i*4,x));return out;}
+      function rol(x,n){return(x<<n)|(x>>>(32-n));}
+      function ripemd160(msg){const r1=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13],r2=[5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11],s1=[11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6],s2=[8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11];let l=msg.length,pad=((56-(l+1)%64)+64)%64,b=new Uint8Array(l+1+pad+8);b.set(msg);b[l]=128;let bits=BigInt(l)*8n;for(let i=0;i<8;i++)b[b.length-8+i]=Number((bits>>BigInt(i*8))&255n);let h=[0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0],x=new Uint32Array(16);const f=(j,a,c,d)=>j<16?(a^c^d):j<32?((a&c)|(~a&d)):j<48?((a|~c)^d):j<64?((a&d)|(c&~d)):(a^(c|~d));const kl=[0,0x5a827999,0x6ed9eba1,0x8f1bbcdc,0xa953fd4e],kr=[0x50a28be6,0x5c4dd124,0x6d703ef3,0x7a6d76e9,0];for(let o=0;o<b.length;o+=64){let v=new DataView(b.buffer,o,64);for(let i=0;i<16;i++)x[i]=v.getUint32(i*4,true);let [al,bl,cl,dl,el]=h,[ar,br,cr,dr,er]=h;for(let j=0;j<80;j++){let t=(rol((al+f(j,bl,cl,dl)+x[r1[j]]+kl[Math.floor(j/16)])>>>0,s1[j])+el)>>>0;[al,el,dl,cl,bl]=[el,dl,rol(cl,10),bl,t];let jj=79-j;t=(rol((ar+f(jj,br,cr,dr)+x[r2[j]]+kr[Math.floor(j/16)])>>>0,s2[j])+er)>>>0;[ar,er,dr,cr,br]=[er,dr,rol(cr,10),br,t];}const t=(h[1]+cl+dr)>>>0;h[1]=(h[2]+dl+er)>>>0;h[2]=(h[3]+el+ar)>>>0;h[3]=(h[4]+al+br)>>>0;h[4]=(h[0]+bl+cr)>>>0;h[0]=t;}const out=new Uint8Array(20),v=new DataView(out.buffer);h.forEach((n,i)=>v.setUint32(i*4,n,true));return out;}
+      const hash160=b=>ripemd160(sha256(b));
+      function base58(b){let n=bytesToBig(b),s="";while(n){const r=Number(n%58n);s=BASE58[r]+s;n/=58n;}for(const x of b){if(x)break;s="1"+s;}return s;}
+      function b58check(prefix,payload){const data=concat(new Uint8Array([prefix]),payload),sum=sha256(sha256(data));return base58(concat(data,sum.slice(0,4)));}
+      function convertBits(data,from,to,pad=true){let acc=0,bits=0,out=[],max=(1<<to)-1;for(const value of data){acc=(acc<<from)|value;bits+=from;while(bits>=to){bits-=to;out.push((acc>>bits)&max);}}if(pad&&bits)out.push((acc<<(to-bits))&max);return out;}
+      function polymod(values){const gen=[0x3b6a57b2,0x26508e6d,0x1ea119fa,0x3d4233dd,0x2a1462b3];let chk=1;for(const v of values){const top=chk>>>25;chk=((chk&0x1ffffff)<<5)^v;for(let i=0;i<5;i++)if((top>>>i)&1)chk^=gen[i];}return chk>>>0;}
+      function bech32(hrp,data,spec="bech32"){const exp=[...[...hrp].map(c=>c.charCodeAt(0)>>5),0,...[...hrp].map(c=>c.charCodeAt(0)&31)],constant=spec==="bech32"?1:0x2bc830a3,pm=(polymod([...exp,...data,0,0,0,0,0,0])^constant)>>>0,sum=[];for(let i=0;i<6;i++)sum.push((pm>>>(5*(5-i)))&31);return hrp+"1"+[...data,...sum].map(x=>BECH32[x]).join("");}
+      function compressed(point){return concat(new Uint8Array([point[1]&1n?3:2]),bigToBytes(point[0]));}
+      function tagged(tag,data){const t=sha256(utf8(tag));return sha256(concat(t,t,data));}
+      function createFromPoint(c,priv,point){const pub=compressed(point);let address,secret,publicHex=hex(pub),outputPublicHex="";if(c.target==="nostr"){address=bech32("npub",convertBits(bigToBytes(point[0]),8,5));secret=bech32("nsec",convertBits(priv,8,5));}else{secret=b58check(c.network==="mainnet"?0x80:0xef,concat(priv,new Uint8Array([1])));if(c.type==="p2pkh")address=b58check(c.network==="mainnet"?0:0x6f,hash160(pub));else if(c.type==="p2wpkh")address=bech32(c.network==="mainnet"?"bc":"tb",[0,...convertBits(hash160(pub),8,5)]);else{const even=[point[0],point[1]&1n?P-point[1]:point[1]],tweak=bytesToBig(tagged("TapTweak",bigToBytes(even[0])))%N,out=addPoints(even,tweak===0n?null:scalarBase(tweak));address=bech32(c.network==="mainnet"?"bc":"tb",[1,...convertBits(bigToBytes(out[0]),8,5)],"bech32m");outputPublicHex=hex(bigToBytes(out[0]));}}return{address,secret,privateHex:hex(priv),publicHex,outputPublicHex,target:c.target};}
+      function createBatch(c){const privateKeys=[],points=[];for(let i=0;i<128;i++){const [priv,k]=randomKey();privateKeys.push(priv);points.push(scalarBaseJacobian(k));}const affine=affineBatch(points);return affine.map((point,index)=>createFromPoint(c,privateKeys[index],point));}
+      function matches(value,c){const a=c.caseSensitive?value:value.toLowerCase(),p=c.caseSensitive?c.pattern:c.pattern.toLowerCase(),s=c.caseSensitive?c.suffix:c.suffix.toLowerCase();if(c.mode==="prefix")return a.startsWith(p);if(c.mode==="suffix")return a.endsWith(p);if(c.mode==="contains")return a.includes(p);return a.startsWith(p)&&a.endsWith(s);}
+      self.onmessage=e=>{const c=e.data;let attempts=0,last=performance.now();try{while(true){for(const result of createBatch(c)){attempts++;if(matches(result.address,c)){self.postMessage({kind:"found",attempts,result});return;}if(performance.now()-last>250){self.postMessage({kind:"progress",attempts});attempts=0;last=performance.now();}}}}catch(error){self.postMessage({kind:"error",message:error.message||String(error)});}};
+    }
+
+    function startSearch(event) {
+      event.preventDefault(); if (running || !renderValidation()) return;
+      const c=config(); attempts=0; startedAt=performance.now(); els.elapsed.dataset.value="0"; running=true; els.result.hidden=true; els.start.disabled=true; els.stop.disabled=false; setStatus("running"); els.pond.querySelectorAll(".drop").forEach(x=>x.remove());
+      const source=`(${workerMain.toString()})()`; const url=URL.createObjectURL(new Blob([source],{type:"text/javascript"}));
+      try {
+        const count=Number(els.workers.value); for(let i=0;i<count;i++){const worker=new Worker(url);worker.onmessage=e=>{attempts+=e.data.attempts||0;if(e.data.kind==="found")showResult(e.data.result);else if(e.data.kind==="error"){stopSearch("error");els["validation-message"].textContent=e.data.message;}};worker.onerror=()=>{stopSearch("error");els["validation-message"].textContent="This browser blocked the local search worker. Try opening the file in a current version of Chrome, Edge, Firefox, or Safari.";};worker.postMessage(c);workers.push(worker);}
+      } catch (error) {
+        URL.revokeObjectURL(url); stopSearch("error"); els["validation-message"].textContent="This browser blocked the local search worker. Try opening the file in a current version of Chrome, Edge, Firefox, or Safari."; return;
+      }
+      URL.revokeObjectURL(url);
+      timer=setInterval(updateStats,250); vizTimer=setInterval(()=>spawnDrop(false),420); updateStats();
+    }
+    els["search-form"].addEventListener("submit",startSearch); els.stop.addEventListener("click",()=>stopSearch("stopped")); els.print.addEventListener("click",()=>window.print());
+    [els.target,els.network,els["address-type"],els["match-mode"]].forEach(el=>el.addEventListener("change",()=>renderControls(false)));
+    [els.pattern,els["suffix-pattern"],els["case-sensitive"]].forEach(el=>el.addEventListener("input",renderValidation));
+    els.workers.value = String(Math.min(4, Math.max(1, (navigator.hardwareConcurrency || 3) - 1)));
+    if (!window.Worker || !window.crypto || !window.BigInt) { els.start.disabled=true; els["validation-message"].textContent="This browser is too old for the classroom generator. Try a current version of Chrome, Edge, Firefox, or Safari."; }
+    renderControls(true); updateStats();
+  })();
+  </script>
+</body>
+</html>

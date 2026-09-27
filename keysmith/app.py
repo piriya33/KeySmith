@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Callable
 import io
-import webbrowser
+import secrets
+from threading import Timer
 
 from flask import Flask, jsonify, request, send_from_directory
 import qrcode
@@ -23,7 +25,11 @@ from keysmith.validation import (
 )
 
 
-def create_app(session: SearchSession | None = None) -> Flask:
+def create_app(
+    session: SearchSession | None = None,
+    shutdown_callback: Callable[[], None] | None = None,
+    shutdown_token: str | None = None,
+) -> Flask:
     app = Flask(__name__, static_folder="static")
     search_session = session or SearchSession()
 
@@ -48,6 +54,8 @@ def create_app(session: SearchSession | None = None) -> Flask:
                 "address_types": list(BITCOIN_ADDRESS_TYPES),
                 "nostr_address_types": list(NOSTR_ADDRESS_TYPES),
                 "match_modes": list(MATCH_MODES),
+                "shutdown_available": shutdown_callback is not None,
+                "shutdown_token": shutdown_token if shutdown_callback is not None else None,
                 "guides": {
                     "p2pkh": BASE58_GUIDE,
                     "p2wpkh": BECH32_GUIDE,
@@ -56,6 +64,17 @@ def create_app(session: SearchSession | None = None) -> Flask:
                 },
             }
         )
+
+    @app.post("/api/shutdown")
+    def shutdown():
+        if shutdown_callback is None or not shutdown_token:
+            return jsonify({"stopping": False}), 404
+        supplied_token = request.headers.get("X-Keysmith-Shutdown", "")
+        if not secrets.compare_digest(supplied_token, shutdown_token):
+            return jsonify({"stopping": False}), 403
+        search_session.stop()
+        Timer(0.05, shutdown_callback).start()
+        return jsonify({"stopping": True})
 
     @app.post("/api/validate")
     def validate():
@@ -150,16 +169,9 @@ def qr_svg_data_uri(value: str) -> str:
 
 
 def main() -> None:
-    app = create_app()
-    host = "127.0.0.1"
-    port = 5000
-    url = f"http://{host}:{port}"
-    print(f"Keysmith running at {url}")
-    try:
-        webbrowser.open(url)
-    except Exception:
-        pass
-    app.run(host=host, port=port, debug=False, threaded=True)
+    from keysmith.launcher import main as launch
+
+    launch()
 
 
 if __name__ == "__main__":

@@ -42,6 +42,7 @@ const paperGrid = document.querySelector("#paper-grid");
 const printButton = document.querySelector("#print-button");
 const startButton = document.querySelector("#start-button");
 const stopButton = document.querySelector("#stop-button");
+const exitButton = document.querySelector("#exit-button");
 const verifySecretInput = document.querySelector("#verify-secret");
 const verifyButton = document.querySelector("#verify-button");
 const verifyMessage = document.querySelector("#verify-message");
@@ -126,6 +127,7 @@ function updatePatternFields(force = false) {
 async function loadOptions() {
   const response = await fetch("/api/options");
   options = await response.json();
+  exitButton.hidden = !options.shutdown_available;
 }
 
 async function postJson(url, payload = {}) {
@@ -484,6 +486,28 @@ form.addEventListener("submit", async (event) => {
 
 stopButton.addEventListener("click", async () => {
   renderSnapshot(await postJson("/api/stop"));
+});
+
+exitButton.addEventListener("click", async () => {
+  if (statusEl.dataset.status === "running" && !window.confirm("Stop the current search and exit Keysmith?")) {
+    return;
+  }
+  exitButton.disabled = true;
+  try {
+    await fetch("/api/shutdown", {
+      method: "POST",
+      headers: { "X-Keysmith-Shutdown": options.shutdown_token },
+    });
+  } catch (_) {
+    // The local server may finish shutting down before the response arrives.
+  }
+  stopPolling();
+  document.querySelector(".shell").innerHTML = `
+    <section class="panel shutdown-screen">
+      <p class="eyebrow">Keysmith stopped</p>
+      <h1>Safe to close this tab</h1>
+      <p class="safety">The local Keysmith process has exited.</p>
+    </section>`;
 });
 
 paperButton.addEventListener("click", () => {

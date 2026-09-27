@@ -1,3 +1,5 @@
+from threading import Event
+
 from keysmith.addressing import AddressResult, create_address_result, private_key_hex_from_int
 from keysmith.app import create_app, with_paper_qr_codes
 from keysmith.search import SearchSession
@@ -33,6 +35,7 @@ def test_options_returns_supported_controls_and_guides():
     assert data["targets"] == ["bitcoin", "nostr"]
     assert "Base58" in data["guides"]["p2pkh"]["name"]
     assert data["guides"]["npub"]["name"] == "Bech32"
+    assert data["shutdown_available"] is False
 
 
 def test_validate_returns_invalid_character_positions():
@@ -135,8 +138,25 @@ def test_index_serves_keysmith_ui():
     assert b"Probability Field" in response.data
     assert b"Search Space" in response.data
     assert b"Prefix + suffix" in response.data
+    assert b"Exit Keysmith" in response.data
     assert b'href="styles.css"' in response.data
     assert b'src="app.js"' in response.data
+
+
+def test_portable_shutdown_requires_token_and_invokes_callback():
+    stopped = Event()
+    app = create_app(shutdown_callback=stopped.set, shutdown_token="test-token")
+    client = app.test_client()
+
+    options = client.get("/api/options").get_json()
+    rejected = client.post("/api/shutdown", headers={"X-Keysmith-Shutdown": "wrong"})
+    accepted = client.post("/api/shutdown", headers={"X-Keysmith-Shutdown": "test-token"})
+
+    assert options["shutdown_available"] is True
+    assert options["shutdown_token"] == "test-token"
+    assert rejected.status_code == 403
+    assert accepted.status_code == 200
+    assert stopped.wait(1)
 
 
 def test_static_asset_aliases_support_server_root():

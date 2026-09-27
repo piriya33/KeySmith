@@ -18,6 +18,12 @@ dependencies = [
 dev = [
   "pytest>=8,<9",
 ]
+build = [
+  "pyinstaller>=6.10,<7",
+]
+
+[project.scripts]
+keysmith = "keysmith.launcher:main"
 
 [tool.setuptools.packages.find]
 include = ["keysmith*"]

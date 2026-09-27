@@ -1,0 +1,53 @@
+name: Build portable apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  macos:
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            artifact: Keysmith-macOS-Apple-Silicon
+          - runner: macos-15-intel
+            artifact: Keysmith-macOS-Intel
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install ".[dev,build]"
+      - run: python -m pytest -q
+      - run: pyinstaller --noconfirm --clean packaging/Keysmith.spec
+      - run: codesign --verify --deep --strict dist/Keysmith.app
+      - run: cd dist && zip -qryX "${{ matrix.artifact }}.zip" Keysmith.app
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}.zip
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install ".[dev,build]"
+      - run: python -m pytest -q
+      - run: pyinstaller --noconfirm --clean packaging/Keysmith.spec
+      - shell: pwsh
+        run: .\scripts\smoke_test_portable.ps1
+      - shell: pwsh
+        run: Compress-Archive -Path dist/Keysmith.exe -DestinationPath dist/Keysmith-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Keysmith-Windows-x64
+          path: dist/Keysmith-Windows-x64.zip

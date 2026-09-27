@@ -54,6 +54,12 @@ select {
   padding: 12px 0 24px;
 }
 
+.mast-actions {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--accent-dark);
@@ -277,6 +283,22 @@ button:disabled {
 
 button.danger {
   background: var(--danger);
+}
+
+button.secondary {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+}
+
+button.secondary:hover {
+  background: var(--soft);
+}
+
+.shutdown-screen {
+  width: min(520px, 100%);
+  margin: 18vh auto 0;
+  text-align: center;
 }
 
 .telemetry {

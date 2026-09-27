@@ -28,6 +28,15 @@ def test_base58_suffix_probability_uses_full_suffix_length():
     assert estimate.probability == approx(1 / 58**2)
 
 
+def test_legacy_prefix_estimate_accounts_for_base58_position_bias():
+    config = SearchConfig("mainnet", "p2pkh", "prefix", "1Tum", True, 1)
+
+    estimate = estimate_probability(config)
+
+    assert expected_attempts(estimate.probability) == approx(4_553_521.108587426)
+    assert "position-dependent" in estimate.note
+
+
 def test_prefix_suffix_estimate_combines_searchable_ends():
     config = SearchConfig(
         "mainnet",
