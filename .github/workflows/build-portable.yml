@@ -60,15 +60,15 @@ jobs:
     needs: [macos, windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           pattern: Keysmith-*
           path: dist
           merge-multiple: true
       - name: Publish release downloads
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create "$GITHUB_REF_NAME" dist/*.zip
-          --title "Keysmith $GITHUB_REF_NAME"
-          --notes "Portable educational builds for Windows x64, Apple Silicon Mac, and Intel Mac. These builds are not publisher-signed or notarized."
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Keysmith ${{ github.ref_name }}
+          body: Portable educational builds for Windows x64, Apple Silicon Mac, and Intel Mac. These builds are not publisher-signed or notarized.
+          files: dist/*.zip
+          fail_on_unmatched_files: true
